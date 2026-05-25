@@ -85,7 +85,7 @@ export default function AllCardsPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 pt-12 pb-2">
+      <div className="flex items-center justify-between px-4 pt-5 pb-2">
         <h1 className="text-lg font-bold text-zinc-100">All Cards</h1>
         <button
           onClick={() => setShowSearch(true)}

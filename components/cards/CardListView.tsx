@@ -92,7 +92,7 @@ export function CardListView({
         onReset={() => { onReset(); setFilter('all'); }}
       />
 
-      <div className="px-3 pb-24 space-y-4">
+      <div className="px-3 pb-20 space-y-4">
         {cards.length === 0 && (
           <p className="text-center text-sm text-zinc-600 py-12">No cards yet</p>
         )}

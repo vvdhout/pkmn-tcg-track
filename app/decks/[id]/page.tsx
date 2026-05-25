@@ -39,7 +39,7 @@ export default function DeckDetailPage({ params }: Props) {
   return (
     <>
       {/* Header */}
-      <div className="flex items-center gap-3 px-3 pt-12 pb-2">
+      <div className="flex items-center gap-3 px-3 pt-5 pb-2">
         <button
           onClick={() => router.back()}
           className="w-8 h-8 flex items-center justify-center rounded-full bg-app-elevated text-zinc-400 active:bg-app-muted touch-manipulation"

@@ -33,14 +33,14 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 flex justify-around items-end bg-app-surface border-t border-app-border pb-safe">
+    <nav className="fixed bottom-0 inset-x-0 z-40 flex justify-around items-center bg-app-surface border-t border-app-border" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {NAV_ITEMS.map((item) => {
         const active = pathname.startsWith(item.href);
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-0.5 px-6 py-3 text-xs font-medium transition-colors touch-manipulation ${
+            className={`flex flex-col items-center gap-0.5 px-6 py-2 text-xs font-medium transition-colors touch-manipulation ${
               active ? 'text-green-400' : 'text-zinc-500'
             }`}
           >

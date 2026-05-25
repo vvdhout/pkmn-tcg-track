@@ -6,19 +6,34 @@ import { CardSearch } from '@/components/cards/CardSearch';
 import { mapToTracked } from '@/services/pokemonTcg';
 import type { TcgCard } from '@/types';
 
+type Pending = { card: TcgCard; needed: number }[];
+
 export default function SearchPage() {
   const { state, dispatch } = useAppContext();
-  const [pendingCard, setPendingCard] = useState<TcgCard | null>(null);
+  const [pending, setPending] = useState<Pending | null>(null);
 
   function handleSelect(card: TcgCard) {
-    setPendingCard(card);
+    setPending([{ card, needed: 1 }]);
+  }
+
+  function handleSelectMultiple(cards: { card: TcgCard; needed: number }[]) {
+    if (cards.length > 0) setPending(cards);
   }
 
   function handleAddTo(deckId: string | null) {
-    if (!pendingCard) return;
-    dispatch({ type: 'ADD_CARD', deckId, card: mapToTracked(pendingCard) });
-    setPendingCard(null);
+    if (!pending) return;
+    pending.forEach(({ card, needed }) =>
+      dispatch({ type: 'ADD_CARD', deckId, card: mapToTracked(card, needed) })
+    );
+    setPending(null);
   }
+
+  const isBatch = (pending?.length ?? 0) > 1;
+  const label = isBatch
+    ? `Add ${pending!.length} cards`
+    : pending
+    ? `Add "${pending[0].card.name}"`
+    : '';
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -27,14 +42,17 @@ export default function SearchPage() {
       </div>
 
       <div className="flex-1 min-h-0">
-        <CardSearch onSelect={handleSelect} />
+        <CardSearch
+          onSelect={handleSelect}
+          onSelectMultiple={handleSelectMultiple}
+        />
       </div>
 
-      {/* Deck picker — slides up when a card is selected */}
-      {pendingCard && (
+      {/* Deck picker — slides up when card(s) are pending */}
+      {pending && (
         <div
           className="fixed inset-0 z-50 flex items-end bg-black/60"
-          onClick={() => setPendingCard(null)}
+          onClick={() => setPending(null)}
         >
           <div
             className="w-full bg-app-surface border-t border-app-border"
@@ -43,7 +61,7 @@ export default function SearchPage() {
             {/* Header */}
             <div className="px-4 pt-4 pb-3 border-b border-app-border">
               <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Add to</p>
-              <p className="text-sm font-semibold text-zinc-100 truncate">"{pendingCard.name}"</p>
+              <p className="text-sm font-semibold text-zinc-100 truncate">{label}</p>
             </div>
 
             {/* Deck list */}
@@ -68,7 +86,7 @@ export default function SearchPage() {
 
             {/* Cancel */}
             <button
-              onClick={() => setPendingCard(null)}
+              onClick={() => setPending(null)}
               className="w-full py-3.5 text-sm text-zinc-400 active:bg-app-elevated touch-manipulation"
               style={{ paddingBottom: 'max(0.875rem, env(safe-area-inset-bottom))' }}
             >

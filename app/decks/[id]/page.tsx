@@ -35,6 +35,11 @@ export default function DeckDetailPage({ params }: Props) {
     setShowSearch(false);
   }
 
+  function handleSelectMultiple(cards: { card: TcgCard; needed: number }[]) {
+    cards.forEach(({ card, needed }) => addCard(mapToTracked(card, needed)));
+    setShowSearch(false);
+  }
+
   const existingIds = deck.cards.map((c) => c.tcgId);
 
   return (
@@ -81,7 +86,7 @@ export default function DeckDetailPage({ params }: Props) {
         title="Add Card"
         fullScreen
       >
-        <CardSearch onSelect={handleSelectCard} excludeIds={existingIds} />
+        <CardSearch onSelect={handleSelectCard} onSelectMultiple={handleSelectMultiple} excludeIds={existingIds} />
       </Modal>
     </div>
   );

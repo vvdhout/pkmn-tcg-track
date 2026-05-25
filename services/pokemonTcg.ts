@@ -31,6 +31,35 @@ export async function getCard(id: string): Promise<TcgCard> {
   return json.data as TcgCard;
 }
 
+export async function findCards(
+  name: string,
+  setCode?: string | null,
+  number?: string | null,
+): Promise<TcgCard[]> {
+  // Strip "/198" total suffix and leading zeros from number
+  const cleanNumber = number?.replace(/\/.*$/, '').replace(/^0+(\d)/, '$1') ?? null;
+
+  async function query(namePart: string): Promise<TcgCard[]> {
+    const parts = [namePart];
+    if (setCode) parts.push(`set.id:${setCode.toLowerCase()}`);
+    if (cleanNumber) parts.push(`number:${cleanNumber}`);
+    const url = new URL(`${BASE_URL}/cards`);
+    url.searchParams.set('q', parts.join(' '));
+    url.searchParams.set('pageSize', '20');
+    url.searchParams.set('orderBy', '-set.releaseDate');
+    url.searchParams.set('select', SELECTED_FIELDS);
+    const res = await fetch(url.toString(), { headers: headers() });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.data as TcgCard[];
+  }
+
+  // Try exact name first, fall back to wildcard
+  const exact = await query(`name:"${name}"`);
+  if (exact.length > 0) return exact;
+  return query(`name:*${name}*`);
+}
+
 export function mapToTracked(card: TcgCard, needed = 1) {
   const prices = card.cardmarket?.prices;
   // Prefer ExPlus (Excellent+ condition) as the "from" price; fall back to lowPrice if absent/zero

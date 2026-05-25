@@ -74,6 +74,13 @@ export default function AllCardsPage() {
     setShowSearch(false);
   }
 
+  function handleSelectMultiple(cards: { card: TcgCard; needed: number }[]) {
+    cards.forEach(({ card, needed }) =>
+      dispatch({ type: 'ADD_CARD', deckId: null, card: mapToTracked(card, needed) })
+    );
+    setShowSearch(false);
+  }
+
   function getDeckLabel(card: TrackedCard) {
     return findEntry(card.tcgId)?.deckName;
   }
@@ -157,7 +164,7 @@ export default function AllCardsPage() {
         title="Add Standalone Card"
         fullScreen
       >
-        <CardSearch onSelect={handleSelectCard} excludeIds={existingIds} />
+        <CardSearch onSelect={handleSelectCard} onSelectMultiple={handleSelectMultiple} excludeIds={existingIds} />
       </Modal>
     </div>
   );

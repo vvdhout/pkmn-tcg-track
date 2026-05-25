@@ -4,22 +4,42 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { usePokemonSearch } from '@/hooks/usePokemonSearch';
 import type { TcgCard } from '@/types';
+import { CardScanner } from './CardScanner';
 
 interface CardSearchProps {
   onSelect: (card: TcgCard) => void;
+  onSelectMultiple?: (cards: { card: TcgCard; needed: number }[]) => void;
   excludeIds?: string[];
 }
 
-export function CardSearch({ onSelect, excludeIds = [] }: CardSearchProps) {
+export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [] }: CardSearchProps) {
   const { query, setQuery, results, loading, error, clear } = usePokemonSearch();
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
+  const [mode, setMode] = useState<'search' | 'scan'>('search');
   const filtered = results.filter((c) => !excludeIds.includes(c.id));
+
+  if (mode === 'scan') {
+    return (
+      <CardScanner
+        onAdd={(cards) => {
+          if (onSelectMultiple) {
+            onSelectMultiple(cards);
+          } else {
+            // Fallback: add one by one (parent won't close modal between calls)
+            cards.forEach(({ card }) => onSelect(card));
+          }
+          setMode('search');
+        }}
+        onBack={() => setMode('search')}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
-      {/* Search input */}
-      <div className="px-3 py-3 border-b border-app-border">
-        <div className="relative">
+      {/* Search input row */}
+      <div className="px-3 py-3 border-b border-app-border flex gap-2">
+        <div className="relative flex-1">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
             <SearchIcon />
           </div>
@@ -45,6 +65,14 @@ export function CardSearch({ onSelect, excludeIds = [] }: CardSearchProps) {
             </button>
           )}
         </div>
+        {/* Scan button */}
+        <button
+          onClick={() => setMode('scan')}
+          className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded bg-app-elevated border border-app-border text-zinc-400 active:bg-app-muted touch-manipulation"
+          aria-label="Scan cards"
+        >
+          <CameraIcon />
+        </button>
       </div>
 
       {/* Results */}
@@ -266,6 +294,21 @@ function SearchIcon() {
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
       <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.5" />
       <path d="M9.5 9.5l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="13" r="4" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   );
 }

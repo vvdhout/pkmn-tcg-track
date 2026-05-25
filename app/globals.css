@@ -18,6 +18,13 @@ body {
   height: 100%;
 }
 
+/* Desktop: show a distinct outer background behind the app column */
+@media (min-width: 768px) {
+  body {
+    background: radial-gradient(ellipse 90% 120% at 50% 0%, #111111 0%, #060606 100%);
+  }
+}
+
 * {
   -webkit-font-smoothing: antialiased;
   box-sizing: border-box;

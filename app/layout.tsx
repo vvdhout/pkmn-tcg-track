@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className="h-full">
       <body className="h-full bg-app-bg">
         <AppProvider>
-          <div className="relative mx-auto max-w-lg h-full">
+          <div className="relative mx-auto max-w-lg h-full md:border-x md:border-app-border md:bg-app-bg md:shadow-[0_0_80px_rgba(0,0,0,0.85)]">
             <main className="h-full overflow-hidden">{children}</main>
             <BottomNav />
           </div>

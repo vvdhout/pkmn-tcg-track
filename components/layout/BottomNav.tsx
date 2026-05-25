@@ -43,7 +43,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 flex justify-around items-center bg-app-surface border-t border-app-border" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-40 flex justify-around items-center bg-app-surface border-t border-app-border md:border-x md:border-app-border" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {NAV_ITEMS.map((item) => {
         const active = pathname.startsWith(item.href);
         return (

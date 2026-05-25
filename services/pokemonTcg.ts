@@ -39,10 +39,10 @@ export async function findCards(
   // Strip "/198" total suffix and leading zeros from number
   const cleanNumber = number?.replace(/\/.*$/, '').replace(/^0+(\d)/, '$1') ?? null;
 
-  async function query(namePart: string): Promise<TcgCard[]> {
+  async function query(namePart: string, useSet: boolean, useNumber: boolean): Promise<TcgCard[]> {
     const parts = [namePart];
-    if (setCode) parts.push(`set.id:${setCode.toLowerCase()}`);
-    if (cleanNumber) parts.push(`number:${cleanNumber}`);
+    if (useSet && setCode) parts.push(`set.id:${setCode.toLowerCase()}`);
+    if (useNumber && cleanNumber) parts.push(`number:${cleanNumber}`);
     const url = new URL(`${BASE_URL}/cards`);
     url.searchParams.set('q', parts.join(' '));
     url.searchParams.set('pageSize', '20');
@@ -54,10 +54,26 @@ export async function findCards(
     return json.data as TcgCard[];
   }
 
-  // Try exact name first, fall back to wildcard
-  const exact = await query(`name:"${name}"`);
-  if (exact.length > 0) return exact;
-  return query(`name:*${name}*`);
+  // Strategy: try progressively looser filters.
+  // Set codes from AI are often wrong (sv1 vs sv01 etc.), so we drop the set
+  // filter quickly and rely on name + number which are usually accurate.
+
+  // 1. Exact name + set + number (most precise)
+  const r1 = await query(`name:"${name}"`, true, true);
+  if (r1.length > 0) return r1;
+
+  // 2. Exact name + number only (set code may have been wrong)
+  if (setCode || cleanNumber) {
+    const r2 = await query(`name:"${name}"`, false, true);
+    if (r2.length > 0) return r2;
+  }
+
+  // 3. Wildcard name + number (handles slight name variations)
+  const r3 = await query(`name:*${name}*`, false, true);
+  if (r3.length > 0) return r3;
+
+  // 4. Wildcard name only (last resort — no set or number filter)
+  return query(`name:*${name}*`, false, false);
 }
 
 export function mapToTracked(card: TcgCard, needed = 1) {

@@ -33,7 +33,7 @@ export function CardListItem({
 
   return (
     <div
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${
+      className={`flex items-center gap-3 px-3 py-2.5 rounded border transition-colors ${
         isComplete
           ? 'bg-green-950/20 border-green-900/40'
           : 'bg-app-elevated border-app-border'
@@ -41,7 +41,7 @@ export function CardListItem({
     >
       {/* Thumbnail */}
       <button
-        className="flex-shrink-0 w-10 h-14 rounded-md overflow-hidden bg-app-surface touch-manipulation active:opacity-70"
+        className="flex-shrink-0 w-10 h-14 overflow-hidden bg-app-surface touch-manipulation active:opacity-70"
         onClick={() => onImageClick(card)}
         aria-label={`View ${card.name}`}
       >
@@ -59,7 +59,7 @@ export function CardListItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
           <span
-            className={`inline-flex items-center justify-center w-5 h-5 rounded-sm text-[10px] font-bold ${badge.className}`}
+            className={`inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold ${badge.className}`}
           >
             {badge.label}
           </span>
@@ -107,7 +107,7 @@ export function CardListItem({
       {/* Edit */}
       <button
         onClick={onEdit}
-        className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800 text-zinc-400 active:bg-zinc-700 touch-manipulation"
+        className="flex-shrink-0 w-7 h-7 flex items-center justify-center bg-zinc-800 text-zinc-400 active:bg-zinc-700 touch-manipulation"
         aria-label="Edit card"
       >
         <EditIcon />
@@ -141,7 +141,7 @@ function CountButton({ onClick, aria, children }: { onClick: () => void; aria: s
     <button
       onClick={onClick}
       aria-label={aria}
-      className="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800 text-zinc-300 text-lg leading-none active:bg-zinc-700 touch-manipulation select-none"
+      className="w-7 h-7 flex items-center justify-center bg-zinc-800 text-zinc-300 text-lg leading-none active:bg-zinc-700 touch-manipulation select-none"
     >
       {children}
     </button>

@@ -15,7 +15,7 @@ export function DeckListItem({ deck, onDelete }: DeckListItemProps) {
   const progress = total === 0 ? 0 : Math.round((collected / total) * 100);
 
   return (
-    <div className="rounded-xl bg-app-elevated border border-app-border overflow-hidden">
+    <div className="rounded bg-app-elevated border border-app-border overflow-hidden">
       <Link href={`/decks/${deck.id}`} className="flex items-center gap-3 px-4 py-4 active:opacity-70 touch-manipulation">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-zinc-100 truncate">{deck.name}</p>

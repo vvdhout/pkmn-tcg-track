@@ -42,7 +42,7 @@ export default function DeckDetailPage({ params }: Props) {
       <div className="flex items-center gap-3 px-3 pt-5 pb-2">
         <button
           onClick={() => router.back()}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-app-elevated text-zinc-400 active:bg-app-muted touch-manipulation"
+          className="w-8 h-8 flex items-center justify-center bg-app-elevated text-zinc-400 active:bg-app-muted touch-manipulation"
           aria-label="Back"
         >
           <BackIcon />
@@ -50,7 +50,7 @@ export default function DeckDetailPage({ params }: Props) {
         <h1 className="flex-1 text-base font-bold text-zinc-100 truncate">{deck.name}</h1>
         <button
           onClick={() => setShowSearch(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-green-600 text-white text-xs font-semibold active:bg-green-700 touch-manipulation"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded bg-green-600 text-white text-xs font-semibold active:bg-green-700 touch-manipulation"
         >
           <span className="text-sm leading-none">+</span>
           Add Card

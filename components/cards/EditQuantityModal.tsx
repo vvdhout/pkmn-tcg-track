@@ -19,7 +19,7 @@ export function EditQuantityModal({ card, onClose, onSetNeeded, onRemove }: Edit
     >
       <div className="absolute inset-0 bg-black/60" />
       <div
-        className="relative bg-app-surface rounded-t-2xl border-t border-app-border p-4 pb-safe space-y-4"
+        className="relative bg-app-surface border-t border-app-border p-4 pb-safe space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
@@ -29,7 +29,7 @@ export function EditQuantityModal({ card, onClose, onSetNeeded, onRemove }: Edit
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 active:bg-zinc-700"
+            className="w-8 h-8 flex items-center justify-center bg-zinc-800 text-zinc-400 active:bg-zinc-700"
           >
             ✕
           </button>
@@ -41,7 +41,7 @@ export function EditQuantityModal({ card, onClose, onSetNeeded, onRemove }: Edit
             <button
               onClick={() => onSetNeeded(card.needed - 1)}
               disabled={card.needed <= 1}
-              className="w-10 h-10 rounded-xl bg-zinc-800 text-zinc-200 text-xl flex items-center justify-center active:bg-zinc-700 disabled:opacity-30 touch-manipulation"
+              className="w-10 h-10 rounded bg-zinc-800 text-zinc-200 text-xl flex items-center justify-center active:bg-zinc-700 disabled:opacity-30 touch-manipulation"
             >
               −
             </button>
@@ -50,7 +50,7 @@ export function EditQuantityModal({ card, onClose, onSetNeeded, onRemove }: Edit
             </span>
             <button
               onClick={() => onSetNeeded(card.needed + 1)}
-              className="w-10 h-10 rounded-xl bg-zinc-800 text-zinc-200 text-xl flex items-center justify-center active:bg-zinc-700 touch-manipulation"
+              className="w-10 h-10 rounded bg-zinc-800 text-zinc-200 text-xl flex items-center justify-center active:bg-zinc-700 touch-manipulation"
             >
               +
             </button>
@@ -59,7 +59,7 @@ export function EditQuantityModal({ card, onClose, onSetNeeded, onRemove }: Edit
 
         <button
           onClick={() => { onRemove(); onClose(); }}
-          className="w-full py-3 rounded-xl bg-red-900/30 text-red-400 text-sm font-medium border border-red-900/40 active:bg-red-900/50 touch-manipulation"
+          className="w-full py-3 rounded bg-red-900/30 text-red-400 text-sm font-medium border border-red-900/40 active:bg-red-900/50 touch-manipulation"
         >
           Remove card
         </button>

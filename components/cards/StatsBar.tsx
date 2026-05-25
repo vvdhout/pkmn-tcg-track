@@ -21,7 +21,7 @@ export function StatsBar({ cards }: StatsBarProps) {
 
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-app-elevated px-3 py-2.5">
+    <div className="rounded bg-app-elevated px-3 py-2.5">
       <p className="text-[10px] text-zinc-500 font-medium leading-none mb-1">{label}</p>
       <p className="text-sm font-bold text-zinc-100 leading-none">{value}</p>
     </div>

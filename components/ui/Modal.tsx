@@ -27,7 +27,7 @@ export function Modal({ open, onClose, children, title, fullScreen }: ModalProps
         className={`relative z-10 mx-auto w-full max-w-lg ${
           fullScreen
             ? 'flex flex-col flex-1 h-full overflow-hidden'
-            : 'mt-auto rounded-t-2xl bg-app-surface'
+            : 'mt-auto bg-app-surface'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -38,7 +38,7 @@ export function Modal({ open, onClose, children, title, fullScreen }: ModalProps
                 <h2 className="text-base font-semibold text-zinc-100">{title}</h2>
                 <button
                   onClick={onClose}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 active:bg-zinc-700"
+                  className="w-8 h-8 flex items-center justify-center bg-zinc-800 text-zinc-400 active:bg-zinc-700"
                   aria-label="Close"
                 >
                   <XIcon />
@@ -48,12 +48,12 @@ export function Modal({ open, onClose, children, title, fullScreen }: ModalProps
             <div className="flex-1 overflow-y-auto">{children}</div>
           </div>
         ) : (
-          <div className="rounded-t-2xl bg-app-surface">
+          <div className="bg-app-surface">
             <div className="flex items-center justify-between px-4 py-3 border-b border-app-border">
               {title && <h2 className="text-base font-semibold text-zinc-100">{title}</h2>}
               <button
                 onClick={onClose}
-                className="ml-auto w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 active:bg-zinc-700"
+                className="ml-auto w-8 h-8 flex items-center justify-center bg-zinc-800 text-zinc-400 active:bg-zinc-700"
                 aria-label="Close"
               >
                 <XIcon />

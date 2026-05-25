@@ -28,7 +28,7 @@ export function CardSearch({ onSelect, excludeIds = [] }: CardSearchProps) {
             placeholder="Search cards…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-app-elevated border border-app-border text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-zinc-600"
+            className="w-full pl-9 pr-10 py-2.5 rounded bg-app-elevated border border-app-border text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-zinc-600"
           />
           {query && (
             <button

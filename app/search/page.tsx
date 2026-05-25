@@ -43,7 +43,7 @@ export default function SearchPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-5 pb-2">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-5 pb-3">
         <div>
           <h1 className="text-lg font-bold text-zinc-100">Search</h1>
           {hasFilter && (

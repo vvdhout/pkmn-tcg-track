@@ -11,13 +11,13 @@ export default function DecksPage() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="flex items-center justify-between px-4 pt-5 pb-4">
+      <div className="flex items-center justify-between px-4 pt-5 pb-3">
         <h1 className="text-lg font-bold text-zinc-100">My Decks</h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded border border-zinc-700 text-zinc-300 text-sm font-semibold active:bg-app-elevated touch-manipulation"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded border border-zinc-700 text-zinc-300 text-xs font-semibold active:bg-app-elevated touch-manipulation"
         >
-          <span className="text-base leading-none">+</span>
+          <span className="text-sm leading-none">+</span>
           New Deck
         </button>
       </div>

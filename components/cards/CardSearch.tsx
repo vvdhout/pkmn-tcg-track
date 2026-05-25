@@ -120,7 +120,7 @@ function SearchResult({
         className="w-9 h-[50px] rounded object-cover flex-shrink-0"
         unoptimized
       />
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
         <p className="text-sm font-medium text-zinc-100 truncate">{card.name}</p>
         <div className="flex items-center gap-1 text-[11px] text-zinc-500 truncate">
           {card.set.images?.symbol && (

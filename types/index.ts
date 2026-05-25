@@ -68,6 +68,7 @@ export interface AppSettings {
   searchSortOrder: 'asc' | 'desc'; // 'asc' = oldest first
   setRangeFrom: SetRef | null;
   setRangeTo: SetRef | null;
+  defaultCardFilter: 'all' | 'missing';
 }
 
 export interface Deck {

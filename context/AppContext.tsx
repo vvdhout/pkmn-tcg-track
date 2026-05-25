@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   searchSortOrder: 'asc',
   setRangeFrom: null,
   setRangeTo: null,
+  defaultCardFilter: 'all',
 };
 
 const DEFAULT: AppState = { decks: [], standaloneCards: [], settings: DEFAULT_SETTINGS };

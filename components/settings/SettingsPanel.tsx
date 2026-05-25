@@ -168,7 +168,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
       <div className="relative z-10 mx-auto w-full max-w-lg flex flex-col h-full bg-app-surface">
         {/* Header */}
         <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-app-border">
-          <h2 className="text-base font-semibold text-zinc-100">Search Settings</h2>
+          <h2 className="text-base font-semibold text-zinc-100">Settings</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 active:bg-zinc-700 touch-manipulation"
@@ -176,6 +176,31 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           >
             <XIcon />
           </button>
+        </div>
+
+        {/* Default card filter */}
+        <div className="px-4 py-5 border-b border-app-border">
+          <p className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase mb-3">
+            Default Card Filter
+          </p>
+          <div className="flex gap-2">
+            {(['all', 'missing'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => dispatch({ type: 'UPDATE_SETTINGS', settings: { defaultCardFilter: f } })}
+                className={`flex-1 py-2.5 text-sm font-medium rounded border touch-manipulation transition-colors ${
+                  settings.defaultCardFilter === f
+                    ? 'bg-white text-zinc-900 border-white'
+                    : 'border-zinc-700 text-zinc-400 active:bg-app-elevated'
+                }`}
+              >
+                {f === 'all' ? 'All' : 'Missing only'}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-zinc-600 mt-2.5 leading-relaxed">
+            Which cards are shown by default when opening a deck or the All Cards view.
+          </p>
         </div>
 
         {/* Sort order */}

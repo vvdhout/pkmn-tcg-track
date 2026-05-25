@@ -47,7 +47,7 @@ function sortCards(cards: TrackedCard[]): TrackedCard[] {
 type Section = { label: string; cards: TrackedCard[] };
 
 function groupByType(cards: TrackedCard[]): Section[] {
-  const order = ['Trainer', 'Pokémon', 'Energy'];
+  const order = ['Pokémon', 'Trainer', 'Energy'];
   const groups = new Map<string, TrackedCard[]>();
   for (const card of cards) {
     const key = card.supertype;
@@ -78,7 +78,7 @@ export function CardListView({
   footer,
 }: CardListViewProps) {
   const { state, dispatch } = useAppContext();
-  const [filter, setFilter] = useState<CardFilter>('all');
+  const [filter, setFilter] = useState<CardFilter>(state.settings.defaultCardFilter ?? 'all');
   const [popupCard, setPopupCard] = useState<TrackedCard | null>(null);
   const [editCardId, setEditCardId] = useState<string | null>(null);
   const editCard = editCardId ? (cards.find((c) => c.tcgId === editCardId) ?? null) : null;

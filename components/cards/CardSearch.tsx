@@ -23,6 +23,7 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [] }: Card
       <div className="flex flex-col h-full">
         <CardScanner
           onSelect={onSelect}
+          onSelectMultiple={onSelectMultiple}
           onBack={() => setMode('search')}
         />
       </div>

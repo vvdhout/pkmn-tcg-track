@@ -526,7 +526,7 @@ function ScanResultRow({
                 key={card.id}
                 onClick={() => onToggle(result.id, card)}
                 className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 rounded touch-manipulation transition-opacity ${
-                  isSelected ? 'ring-2 ring-white' : 'opacity-50 active:opacity-100'
+                  isSelected ? '' : 'opacity-40 active:opacity-100'
                 }`}
               >
                 <Image
@@ -537,7 +537,7 @@ function ScanResultRow({
                   className="w-[52px] h-[72px] rounded object-cover"
                   unoptimized
                 />
-                <span className="text-[9px] text-zinc-500 w-[52px] text-center leading-tight">
+                <span className={`text-[9px] w-[52px] text-center leading-tight ${isSelected ? 'text-zinc-300 underline underline-offset-2' : 'text-zinc-500'}`}>
                   {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')}
                 </span>
               </button>

@@ -122,8 +122,8 @@ export function CardScanner({ onSelect, onSelectMultiple, onBack }: CardScannerP
   // Called from hub to add all selected cards
   function handleAddAll() {
     const toAdd = selectedCards
-      .filter((c): c is TcgCard => c !== null)
-      .map((c) => ({ card: c, needed: 1 }));
+      .map((c, i) => c !== null ? { card: c, needed: scannedCards[i].quantity } : null)
+      .filter((x): x is { card: TcgCard; needed: number } => x !== null);
     if (onSelectMultiple) {
       onSelectMultiple(toAdd);
     } else {

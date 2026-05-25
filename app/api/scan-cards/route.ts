@@ -47,10 +47,10 @@ export async function POST(req: NextRequest) {
       text: body.text ? `${PROMPT}\n\nCard list to parse:\n${body.text}` : PROMPT,
     });
 
-    // Try models in order from newest to oldest — older keys may not have access to newer models
+    // Model preference: cheapest/fastest first, fall back to next tier on 404
     const MODELS = [
-      'claude-3-5-haiku-20241022',
-      'claude-3-haiku-20240307',
+      'claude-haiku-4-5',
+      'claude-sonnet-4-6',
     ];
 
     let res: Response | null = null;
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       }
       if (status === 404) {
         return NextResponse.json(
-          { error: `Model 404 — Anthropic said: ${lastErrText.slice(0, 200)}` },
+          { error: 'Claude model not found. Please contact support.' },
           { status: 500 },
         );
       }

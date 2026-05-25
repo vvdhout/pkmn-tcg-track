@@ -6,7 +6,9 @@ import { useAppContext, useCardActions, useDecks } from '@/context/AppContext';
 import { CardListView } from '@/components/cards/CardListView';
 import { CardSearch } from '@/components/cards/CardSearch';
 import { Modal } from '@/components/ui/Modal';
+import { FormatPicker } from '@/components/formats/FormatPicker';
 import { mapToTracked } from '@/services/pokemonTcg';
+import { getFormat } from '@/services/formats';
 import type { TcgCard } from '@/types';
 
 interface Props {
@@ -23,7 +25,10 @@ export default function DeckDetailPage({ params }: Props) {
   const { addCard, removeCard, setCollected, setNeeded, resetCollected } = useCardActions(id);
   const { deleteDeck } = useDecks();
   const [showSearch, setShowSearch] = useState(false);
+  const [showFormatPicker, setShowFormatPicker] = useState(false);
   const [standaloneConflict, setStandaloneConflict] = useState<ConflictItem[] | null>(null);
+
+  const deckFormat = deck?.format ? getFormat(deck.format) : undefined;
 
   if (!deck) {
     return (
@@ -95,7 +100,15 @@ export default function DeckDetailPage({ params }: Props) {
         >
           <BackIcon />
         </button>
-        <h1 className="flex-1 text-base font-bold text-zinc-100 truncate">{deck.name}</h1>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base font-bold text-zinc-100 truncate">{deck.name}</h1>
+          <button
+            onClick={() => setShowFormatPicker(true)}
+            className="text-[11px] text-zinc-500 active:text-zinc-300 touch-manipulation"
+          >
+            {deckFormat ? deckFormat.name : 'No format'}
+          </button>
+        </div>
         <button
           onClick={() => setShowSearch(true)}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded bg-white text-zinc-900 text-xs font-semibold active:bg-zinc-200 touch-manipulation"
@@ -128,8 +141,16 @@ export default function DeckDetailPage({ params }: Props) {
         title="Add Card"
         fullScreen
       >
-        <CardSearch onSelect={handleSelectCard} onSelectMultiple={handleSelectMultiple} excludeIds={existingIds} />
+        <CardSearch onSelect={handleSelectCard} onSelectMultiple={handleSelectMultiple} excludeIds={existingIds} deckFormat={deckFormat} />
       </Modal>
+
+      {showFormatPicker && (
+        <FormatPicker
+          currentFormatId={deck.format ?? null}
+          onSelect={(formatId) => dispatch({ type: 'SET_DECK_FORMAT', deckId: id, format: formatId })}
+          onClose={() => setShowFormatPicker(false)}
+        />
+      )}
 
       {/* Standalone conflict overlay — appears above Modal (z-[60]) */}
       {standaloneConflict && (

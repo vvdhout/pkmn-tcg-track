@@ -18,6 +18,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   setRangeFrom: null,
   setRangeTo: null,
   defaultCardFilter: 'all',
+  defaultDeckFormat: null,
+  favoriteFormats: ['standard', 'expanded'],
 };
 
 const DEFAULT: AppState = { decks: [], standaloneCards: [], settings: DEFAULT_SETTINGS };
@@ -36,8 +38,18 @@ function reducer(state: AppState, action: AppAction): AppState {
         ...state,
         decks: [
           ...state.decks,
-          { id: crypto.randomUUID(), name: action.name, cards: [], createdAt: Date.now() },
+          { id: crypto.randomUUID(), name: action.name, cards: [], createdAt: Date.now(), format: action.format },
         ],
+      };
+
+    case 'SET_DECK_FORMAT':
+      return {
+        ...state,
+        decks: state.decks.map((d) =>
+          d.id === action.deckId
+            ? { ...d, format: action.format ?? undefined }
+            : d
+        ),
       };
 
     case 'DELETE_DECK':
@@ -226,7 +238,7 @@ export function useDecks() {
   const { state, dispatch } = useAppContext();
 
   const createDeck = useCallback(
-    (name: string) => dispatch({ type: 'CREATE_DECK', name }),
+    (name: string, format?: string) => dispatch({ type: 'CREATE_DECK', name, format }),
     [dispatch]
   );
   const deleteDeck = useCallback(

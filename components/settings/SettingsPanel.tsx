@@ -4,9 +4,11 @@ import { useState } from 'react';
 import Image from 'next/image';
 import type { TcgSet, SetRef, AppSettings } from '@/types';
 import { fetchSets } from '@/services/pokemonTcg';
+import { FORMATS, getFormat } from '@/services/formats';
 import { useAppContext } from '@/context/AppContext';
+import { FormatPicker } from '@/components/formats/FormatPicker';
 
-type View = 'main' | 'pick-from' | 'pick-to';
+type View = 'main' | 'pick-from' | 'pick-to' | 'pick-favorites';
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const { state, dispatch } = useAppContext();
@@ -16,6 +18,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [sets, setSets] = useState<TcgSet[] | null>(null);
   const [setsLoading, setSetsLoading] = useState(false);
   const [filterText, setFilterText] = useState('');
+  const [showDefaultFormatPicker, setShowDefaultFormatPicker] = useState(false);
 
   async function openPicker(v: 'pick-from' | 'pick-to') {
     setFilterText('');
@@ -161,8 +164,64 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
     );
   }
 
+  /* ── Favorites picker view ── */
+  if (view === 'pick-favorites') {
+    const { favoriteFormats } = settings;
+    function toggleFavorite(id: string) {
+      const next = favoriteFormats.includes(id)
+        ? favoriteFormats.filter((f) => f !== id)
+        : [...favoriteFormats, id];
+      dispatch({ type: 'UPDATE_SETTINGS', settings: { favoriteFormats: next } });
+    }
+    return (
+      <div className="fixed inset-0 z-[60] flex flex-col">
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+        <div className="relative z-10 mx-auto w-full max-w-lg flex flex-col h-full bg-app-surface">
+          <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-app-border">
+            <button
+              onClick={() => setView('main')}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-app-elevated text-zinc-400 active:bg-app-muted touch-manipulation"
+              aria-label="Back"
+            >
+              <BackIcon />
+            </button>
+            <h2 className="flex-1 text-sm font-semibold text-zinc-100">Popular Formats</h2>
+          </div>
+          <p className="px-4 py-3 text-[11px] text-zinc-500 border-b border-app-border">
+            Checked formats appear at the top of format pickers.
+          </p>
+          <div className="flex-1 overflow-y-auto">
+            {FORMATS.map((f) => {
+              const checked = favoriteFormats.includes(f.id);
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => toggleFavorite(f.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-app-border active:bg-app-elevated touch-manipulation text-left"
+                >
+                  <div className={`w-5 h-5 rounded flex-shrink-0 border flex items-center justify-center ${checked ? 'bg-white border-white' : 'border-zinc-600'}`}>
+                    {checked && (
+                      <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                        <path d="M1.5 5.5l3 3 5-5" stroke="#09090b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-zinc-100">{f.name}</p>
+                    <p className="text-[11px] text-zinc-500">{f.category === 'official' ? 'Official' : 'Retro'}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   /* ── Main settings view ── */
   return (
+    <>
     <div className="fixed inset-0 z-[60] flex flex-col">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 mx-auto w-full max-w-lg flex flex-col h-full bg-app-surface">
@@ -201,6 +260,35 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           <p className="text-[11px] text-zinc-600 mt-2.5 leading-relaxed">
             Which cards are shown by default when opening a deck or the All Cards view.
           </p>
+        </div>
+
+        {/* Default deck format */}
+        <div className="px-4 py-5 border-b border-app-border">
+          <p className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase mb-3">
+            Default Deck Format
+          </p>
+          <button
+            onClick={() => setShowDefaultFormatPicker(true)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded border border-app-border bg-app-elevated active:bg-app-muted touch-manipulation"
+          >
+            <span className="text-sm text-zinc-100">
+              {settings.defaultDeckFormat
+                ? (getFormat(settings.defaultDeckFormat)?.name ?? settings.defaultDeckFormat)
+                : 'None'}
+            </span>
+            <ChevronIcon />
+          </button>
+          <div className="flex items-center justify-between mt-3">
+            <p className="text-[11px] text-zinc-600 leading-relaxed flex-1">
+              Pre-selected format when creating a new deck.
+            </p>
+            <button
+              onClick={() => setView('pick-favorites')}
+              className="ml-4 text-xs text-zinc-500 active:text-zinc-300 touch-manipulation flex-shrink-0"
+            >
+              Edit popular
+            </button>
+          </div>
         </div>
 
         {/* Sort order */}
@@ -283,6 +371,15 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     </div>
+
+    {showDefaultFormatPicker && (
+      <FormatPicker
+        currentFormatId={settings.defaultDeckFormat}
+        onSelect={(id) => dispatch({ type: 'UPDATE_SETTINGS', settings: { defaultDeckFormat: id } })}
+        onClose={() => setShowDefaultFormatPicker(false)}
+      />
+    )}
+    </>
   );
 }
 

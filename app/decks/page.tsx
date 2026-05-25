@@ -40,7 +40,7 @@ export default function DecksPage() {
       <CreateDeckModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        onCreate={createDeck}
+        onCreate={(name, format) => { createDeck(name, format); setShowCreate(false); }}
       />
     </div>
   );

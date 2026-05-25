@@ -69,6 +69,8 @@ export interface AppSettings {
   setRangeFrom: SetRef | null;
   setRangeTo: SetRef | null;
   defaultCardFilter: 'all' | 'missing';
+  defaultDeckFormat: string | null;
+  favoriteFormats: string[];
 }
 
 export interface Deck {
@@ -76,6 +78,7 @@ export interface Deck {
   name: string;
   cards: TrackedCard[];
   createdAt: number;
+  format?: string; // format id from services/formats.ts
 }
 
 export interface AppState {
@@ -89,7 +92,7 @@ export type CardFilter = 'all' | 'pokemon' | 'trainer' | 'energy' | 'missing' | 
 
 export type AppAction =
   | { type: 'LOAD'; payload: AppState }
-  | { type: 'CREATE_DECK'; name: string }
+  | { type: 'CREATE_DECK'; name: string; format?: string }
   | { type: 'DELETE_DECK'; deckId: string }
   | { type: 'RENAME_DECK'; deckId: string; name: string }
   | { type: 'ADD_CARD'; deckId: string | null; card: TrackedCard }
@@ -99,4 +102,5 @@ export type AppAction =
   | { type: 'RESET_COLLECTED'; deckId: string | null }
   | { type: 'MOVE_TO_STANDALONE'; deckId: string; tcgId: string }
   | { type: 'UPDATE_SETTINGS'; settings: Partial<AppSettings> }
-  | { type: 'UPDATE_CARD_PRICES'; updates: { tcgId: string; lowPrice?: number; avg30?: number }[]; timestamp: number };
+  | { type: 'UPDATE_CARD_PRICES'; updates: { tcgId: string; lowPrice?: number; avg30?: number }[]; timestamp: number }
+  | { type: 'SET_DECK_FORMAT'; deckId: string; format: string | null };

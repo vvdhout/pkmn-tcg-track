@@ -5,7 +5,12 @@ import type { TcgCard } from '@/types';
 import { searchCards } from '@/services/pokemonTcg';
 import { useAppContext } from '@/context/AppContext';
 
-export function usePokemonSearch() {
+interface SearchOverrides {
+  setDateFrom?: string;
+  setDateTo?: string;
+}
+
+export function usePokemonSearch(overrides?: SearchOverrides) {
   const { state } = useAppContext();
   const { settings } = state;
   const [query, setQuery] = useState('');
@@ -14,10 +19,11 @@ export function usePokemonSearch() {
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Pull individual settings values so the effect only re-runs when they actually change
   const sortOrder = settings.searchSortOrder;
-  const setDateFrom = settings.setRangeFrom?.releaseDate;
-  const setDateTo = settings.setRangeTo?.releaseDate;
+  // If overrides object is provided (even with undefined values), use it; otherwise fall back to global settings.
+  // This lets an "Unlimited" format override (overrides={}) clear the global date filter.
+  const setDateFrom = overrides !== undefined ? overrides.setDateFrom : settings.setRangeFrom?.releaseDate;
+  const setDateTo   = overrides !== undefined ? overrides.setDateTo   : settings.setRangeTo?.releaseDate;
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);

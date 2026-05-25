@@ -48,7 +48,7 @@ export function CreateDeckModal({ open, onClose, onCreate }: CreateDeckModalProp
           <button
             onClick={submit}
             disabled={!name.trim()}
-            className="flex-1 py-3 rounded bg-green-600 text-white text-sm font-semibold active:bg-green-700 disabled:opacity-40 touch-manipulation"
+            className="flex-1 py-3 rounded bg-white text-zinc-900 text-sm font-semibold active:bg-zinc-200 disabled:opacity-40 touch-manipulation"
           >
             Create
           </button>

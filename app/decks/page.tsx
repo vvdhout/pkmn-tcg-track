@@ -6,7 +6,7 @@ import { DeckListItem } from '@/components/decks/DeckListItem';
 import { CreateDeckModal } from '@/components/decks/CreateDeckModal';
 
 export default function DecksPage() {
-  const { decks, createDeck, deleteDeck } = useDecks();
+  const { decks, createDeck } = useDecks();
   const [showCreate, setShowCreate] = useState(false);
 
   return (
@@ -15,7 +15,7 @@ export default function DecksPage() {
         <h1 className="text-lg font-bold text-zinc-100">My Decks</h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded bg-green-600 text-white text-sm font-semibold active:bg-green-700 touch-manipulation"
+          className="flex items-center gap-1.5 px-4 py-2 rounded bg-white text-zinc-900 text-sm font-semibold active:bg-zinc-200 touch-manipulation"
         >
           <span className="text-base leading-none">+</span>
           New Deck
@@ -33,7 +33,6 @@ export default function DecksPage() {
           <DeckListItem
             key={deck.id}
             deck={deck}
-            onDelete={() => deleteDeck(deck.id)}
           />
         ))}
       </div>

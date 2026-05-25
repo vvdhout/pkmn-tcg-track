@@ -5,10 +5,9 @@ import type { Deck } from '@/types';
 
 interface DeckListItemProps {
   deck: Deck;
-  onDelete: () => void;
 }
 
-export function DeckListItem({ deck, onDelete }: DeckListItemProps) {
+export function DeckListItem({ deck }: DeckListItemProps) {
   const total = deck.cards.reduce((s, c) => s + c.needed, 0);
   const collected = deck.cards.reduce((s, c) => s + c.collected, 0);
   const complete = deck.cards.filter((c) => c.collected >= c.needed).length;
@@ -33,15 +32,6 @@ export function DeckListItem({ deck, onDelete }: DeckListItemProps) {
         </div>
         <ChevronIcon />
       </Link>
-
-      <div className="border-t border-app-border flex">
-        <button
-          onClick={onDelete}
-          className="flex-1 py-2.5 text-xs text-red-500 font-medium active:bg-red-900/20 touch-manipulation"
-        >
-          Delete
-        </button>
-      </div>
     </div>
   );
 }

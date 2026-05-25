@@ -41,10 +41,10 @@ export function BottomNav() {
             key={item.href}
             href={item.href}
             className={`flex flex-col items-center gap-0.5 px-6 py-2 text-xs font-medium transition-colors touch-manipulation ${
-              active ? 'text-green-400' : 'text-zinc-500'
+              active ? 'text-white' : 'text-zinc-500'
             }`}
           >
-            <span className={active ? 'text-green-400' : 'text-zinc-500'}>{item.icon}</span>
+            <span className={active ? 'text-white' : 'text-zinc-500'}>{item.icon}</span>
             {item.label}
           </Link>
         );

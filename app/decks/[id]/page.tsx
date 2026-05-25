@@ -2,7 +2,7 @@
 
 import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAppContext, useCardActions } from '@/context/AppContext';
+import { useAppContext, useCardActions, useDecks } from '@/context/AppContext';
 import { CardListView } from '@/components/cards/CardListView';
 import { CardSearch } from '@/components/cards/CardSearch';
 import { Modal } from '@/components/ui/Modal';
@@ -19,6 +19,7 @@ export default function DeckDetailPage({ params }: Props) {
   const { state } = useAppContext();
   const deck = state.decks.find((d) => d.id === id);
   const { addCard, removeCard, setCollected, setNeeded, resetCollected } = useCardActions(id);
+  const { deleteDeck } = useDecks();
   const [showSearch, setShowSearch] = useState(false);
 
   if (!deck) {
@@ -50,7 +51,7 @@ export default function DeckDetailPage({ params }: Props) {
         <h1 className="flex-1 text-base font-bold text-zinc-100 truncate">{deck.name}</h1>
         <button
           onClick={() => setShowSearch(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded bg-green-600 text-white text-xs font-semibold active:bg-green-700 touch-manipulation"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded bg-white text-zinc-900 text-xs font-semibold active:bg-zinc-200 touch-manipulation"
         >
           <span className="text-sm leading-none">+</span>
           Add Card
@@ -64,6 +65,14 @@ export default function DeckDetailPage({ params }: Props) {
         onSetNeeded={setNeeded}
         onRemove={removeCard}
         onReset={resetCollected}
+        footer={
+          <button
+            onClick={() => { deleteDeck(id); router.replace('/decks'); }}
+            className="w-full py-3 text-sm font-medium text-red-500 border border-red-900/40 bg-red-900/10 active:bg-red-900/20 touch-manipulation"
+          >
+            Delete Deck
+          </button>
+        }
       />
 
       <Modal

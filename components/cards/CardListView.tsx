@@ -17,6 +17,7 @@ interface CardListViewProps {
   onSetNeeded: (tcgId: string, value: number) => void;
   onRemove: (tcgId: string) => void;
   onReset: () => void;
+  footer?: React.ReactNode;
 }
 
 function applyFilter(cards: TrackedCard[], filter: CardFilter): TrackedCard[] {
@@ -72,6 +73,7 @@ export function CardListView({
   onSetNeeded,
   onRemove,
   onReset,
+  footer,
 }: CardListViewProps) {
   const [filter, setFilter] = useState<CardFilter>('all');
   const [popupCard, setPopupCard] = useState<TrackedCard | null>(null);
@@ -92,7 +94,7 @@ export function CardListView({
         onReset={() => { onReset(); setFilter('all'); }}
       />
 
-      <div className="px-3 pb-20 space-y-4">
+      <div className="px-3 space-y-4">
         {cards.length === 0 && (
           <p className="text-center text-sm text-zinc-600 py-12">No cards yet</p>
         )}
@@ -119,6 +121,8 @@ export function CardListView({
             </div>
           </div>
         ))}
+        {footer && <div className="pt-2">{footer}</div>}
+        <div className="pb-16" />
       </div>
 
       <ImagePopup card={popupCard} onClose={() => setPopupCard(null)} />

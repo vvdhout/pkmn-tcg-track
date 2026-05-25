@@ -89,7 +89,7 @@ export default function AllCardsPage() {
         <h1 className="text-lg font-bold text-zinc-100">All Cards</h1>
         <button
           onClick={() => setShowSearch(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded bg-green-600 text-white text-xs font-semibold active:bg-green-700 touch-manipulation"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded bg-white text-zinc-900 text-xs font-semibold active:bg-zinc-200 touch-manipulation"
         >
           <span className="text-sm leading-none">+</span>
           Add Card

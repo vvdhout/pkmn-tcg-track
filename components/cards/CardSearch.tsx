@@ -45,7 +45,7 @@ export function CardSearch({ onSelect, excludeIds = [] }: CardSearchProps) {
       <div className="flex-1 overflow-y-auto">
         {loading && (
           <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-2 border-zinc-700 border-t-green-400 rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-zinc-700 border-t-white rounded-full animate-spin" />
           </div>
         )}
         {error && (

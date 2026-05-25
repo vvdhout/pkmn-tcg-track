@@ -11,6 +11,7 @@ import {
 } from 'react';
 import type { AppState, AppAction, AppSettings, TrackedCard } from '@/types';
 import { loadState, saveState } from '@/services/storage';
+import { refreshCardPrices } from '@/services/pokemonTcg';
 
 const DEFAULT_SETTINGS: AppSettings = {
   searchSortOrder: 'asc',
@@ -133,6 +134,23 @@ function reducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_SETTINGS':
       return { ...state, settings: { ...state.settings, ...action.settings } };
 
+    case 'UPDATE_CARD_PRICES': {
+      const priceMap = new Map(
+        action.updates.map((u) => [u.tcgId, { lowPrice: u.lowPrice, avg30: u.avg30 }]),
+      );
+      const applyPrices = (c: TrackedCard) => {
+        const p = priceMap.get(c.tcgId);
+        if (!p) return c;
+        return { ...c, cardmarketLowPrice: p.lowPrice, cardmarketAvg30: p.avg30 };
+      };
+      return {
+        ...state,
+        pricesLastUpdated: action.timestamp,
+        decks: state.decks.map((d) => ({ ...d, cards: d.cards.map(applyPrices) })),
+        standaloneCards: state.standaloneCards.map(applyPrices),
+      };
+    }
+
     case 'MOVE_TO_STANDALONE': {
       const sourceDeck = state.decks.find((d) => d.id === action.deckId);
       const card = sourceDeck?.cards.find((c) => c.tcgId === action.tcgId);
@@ -167,7 +185,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, DEFAULT);
 
   useEffect(() => {
-    dispatch({ type: 'LOAD', payload: loadState() });
+    const loaded = loadState();
+    dispatch({ type: 'LOAD', payload: loaded });
+
+    const staleAfter = 24 * 60 * 60 * 1000;
+    const age = Date.now() - (loaded.pricesLastUpdated ?? 0);
+    if (age > staleAfter) {
+      const ids = [
+        ...loaded.standaloneCards,
+        ...loaded.decks.flatMap((d) => d.cards),
+      ].map((c) => c.tcgId);
+      const uniqueIds = [...new Set(ids)];
+      if (uniqueIds.length > 0) {
+        refreshCardPrices(uniqueIds).then((updates) => {
+          if (updates.length > 0) {
+            dispatch({ type: 'UPDATE_CARD_PRICES', updates, timestamp: Date.now() });
+          }
+        });
+      }
+    }
   }, []);
 
   useEffect(() => {

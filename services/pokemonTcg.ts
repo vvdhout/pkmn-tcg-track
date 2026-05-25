@@ -148,6 +148,37 @@ export async function findCards(
   return query(`name:*${name}*`, false, false);
 }
 
+export async function refreshCardPrices(
+  ids: string[],
+): Promise<{ tcgId: string; lowPrice?: number; avg30?: number }[]> {
+  if (ids.length === 0) return [];
+  const BATCH = 20;
+  const results: { tcgId: string; lowPrice?: number; avg30?: number }[] = [];
+  for (let i = 0; i < ids.length; i += BATCH) {
+    const batch = ids.slice(i, i + BATCH);
+    const url = new URL(`${BASE_URL}/cards`);
+    url.searchParams.set('q', batch.map((id) => `id:${id}`).join(' OR '));
+    url.searchParams.set('pageSize', String(BATCH));
+    url.searchParams.set('select', 'id,cardmarket');
+    try {
+      const res = await fetch(url.toString(), { headers: headers() });
+      if (!res.ok) continue;
+      const json = await res.json();
+      for (const card of json.data as TcgCard[]) {
+        const prices = card.cardmarket?.prices;
+        const lowPrice =
+          prices?.lowPriceExPlus != null && prices.lowPriceExPlus > 0
+            ? prices.lowPriceExPlus
+            : prices?.lowPrice;
+        results.push({ tcgId: card.id, lowPrice, avg30: prices?.avg30 });
+      }
+    } catch {
+      // skip failed batches silently
+    }
+  }
+  return results;
+}
+
 export function mapToTracked(card: TcgCard, needed = 1) {
   const prices = card.cardmarket?.prices;
   const lowPriceExPlus = prices?.lowPriceExPlus;

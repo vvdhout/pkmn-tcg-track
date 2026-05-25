@@ -81,6 +81,7 @@ export interface AppState {
   decks: Deck[];
   standaloneCards: TrackedCard[];
   settings: AppSettings;
+  pricesLastUpdated?: number;
 }
 
 export type CardFilter = 'all' | 'pokemon' | 'trainer' | 'energy' | 'missing' | 'complete';
@@ -96,4 +97,5 @@ export type AppAction =
   | { type: 'SET_NEEDED'; deckId: string | null; tcgId: string; value: number }
   | { type: 'RESET_COLLECTED'; deckId: string | null }
   | { type: 'MOVE_TO_STANDALONE'; deckId: string; tcgId: string }
-  | { type: 'UPDATE_SETTINGS'; settings: Partial<AppSettings> };
+  | { type: 'UPDATE_SETTINGS'; settings: Partial<AppSettings> }
+  | { type: 'UPDATE_CARD_PRICES'; updates: { tcgId: string; lowPrice?: number; avg30?: number }[]; timestamp: number };

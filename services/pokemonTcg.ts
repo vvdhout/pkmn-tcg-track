@@ -72,13 +72,18 @@ async function resolveSetFilter(dateFrom?: string, dateTo?: string): Promise<str
 
 // ── Public search functions ──────────────────────────────────────────────────
 
+function buildNameQuery(query: string): string {
+  const words = query.trim().split(/\s+/).filter(Boolean);
+  return words.map((w) => `name:*${w.replace(/'/g, "\\'")}*`).join(' ');
+}
+
 export async function searchCards(query: string, page = 1, options?: SearchOptions): Promise<TcgCard[]> {
   if (!query.trim()) return [];
 
   const setFilter = await resolveSetFilter(options?.setDateFrom, options?.setDateTo);
   if (setFilter === 'NONE') return [];
 
-  const parts = [`name:*${query.trim()}*`];
+  const parts = [buildNameQuery(query)];
   if (setFilter) parts.push(setFilter);
 
   const url = new URL(`${BASE_URL}/cards`);

@@ -4,21 +4,17 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { usePokemonSearch } from '@/hooks/usePokemonSearch';
 import type { TcgCard } from '@/types';
-import type { Format } from '@/services/formats';
 import { CardScanner } from './CardScanner';
 
 interface CardSearchProps {
   onSelect: (card: TcgCard) => void;
   onSelectMultiple?: (cards: { card: TcgCard; needed: number }[]) => void;
   excludeIds?: string[];
-  deckFormat?: Format; // if set, overrides global date filter for this search
+  formatIds?: string[];
 }
 
-export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], deckFormat }: CardSearchProps) {
-  const overrides = deckFormat !== undefined
-    ? { setDateFrom: deckFormat.fromDate, setDateTo: deckFormat.toDate }
-    : undefined;
-  const { query, setQuery, results, loading, error, clear } = usePokemonSearch(overrides);
+export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], formatIds }: CardSearchProps) {
+  const { query, setQuery, results, loading, error, clear } = usePokemonSearch(formatIds ? { formatIds } : undefined);
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
   const [mode, setMode] = useState<'search' | 'scan'>('search');
   const filtered = results.filter((c) => !excludeIds.includes(c.id));
@@ -30,7 +26,7 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], deckFo
           onSelect={onSelect}
           onSelectMultiple={onSelectMultiple}
           onBack={() => setMode('search')}
-          deckFormat={deckFormat}
+          formatIds={formatIds}
         />
       </div>
     );

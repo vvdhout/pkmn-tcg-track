@@ -29,6 +29,7 @@ export default function DeckDetailPage({ params }: Props) {
   const [standaloneConflict, setStandaloneConflict] = useState<ConflictItem[] | null>(null);
 
   const deckFormat = deck?.format ? getFormat(deck.format) : undefined;
+  const deckFormatIds = deck?.format ? [deck.format] : undefined;
 
   if (!deck) {
     return (
@@ -141,7 +142,7 @@ export default function DeckDetailPage({ params }: Props) {
         title="Add Card"
         fullScreen
       >
-        <CardSearch onSelect={handleSelectCard} onSelectMultiple={handleSelectMultiple} excludeIds={existingIds} deckFormat={deckFormat} />
+        <CardSearch onSelect={handleSelectCard} onSelectMultiple={handleSelectMultiple} excludeIds={existingIds} formatIds={deckFormatIds} />
       </Modal>
 
       {showFormatPicker && (

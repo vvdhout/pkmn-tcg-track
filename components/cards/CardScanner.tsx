@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import type { TcgCard } from '@/types';
-import type { Format } from '@/services/formats';
 import { searchCards, type SearchOptions } from '@/services/pokemonTcg';
 import { useAppContext } from '@/context/AppContext';
 
@@ -18,17 +17,16 @@ interface CardScannerProps {
   onSelect: (card: TcgCard) => void;
   onSelectMultiple?: (cards: { card: TcgCard; needed: number }[]) => void;
   onBack: () => void;
-  deckFormat?: Format;
+  formatIds?: string[];
 }
 
 type Phase = 'idle' | 'processing' | 'hub' | 'results';
 
-export function CardScanner({ onSelect, onSelectMultiple, onBack, deckFormat }: CardScannerProps) {
+export function CardScanner({ onSelect, onSelectMultiple, onBack, formatIds }: CardScannerProps) {
   const { state } = useAppContext();
   const searchOptions: SearchOptions = {
     sortOrder: state.settings.searchSortOrder,
-    setDateFrom: deckFormat !== undefined ? deckFormat.fromDate : state.settings.setRangeFrom?.releaseDate,
-    setDateTo:   deckFormat !== undefined ? deckFormat.toDate   : state.settings.setRangeTo?.releaseDate,
+    formatIds,
   };
 
   const [phase, setPhase] = useState<Phase>('idle');

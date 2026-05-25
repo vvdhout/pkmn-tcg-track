@@ -9,16 +9,18 @@ interface ImagePopupProps {
   onClose: () => void;
 }
 
-function PriceLink({ href, label, value }: { href?: string; label: string; value: number }) {
-  const text = `${label} €${value.toFixed(2)}`;
+function PriceLink({ href, low, avg30 }: { href?: string; low?: number; avg30?: number }) {
+  const parts = [low != null ? `€${low.toFixed(2)}` : null, avg30 != null ? `€${avg30.toFixed(2)}` : null]
+    .filter(Boolean)
+    .join('/');
   if (href) {
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 underline underline-offset-2 decoration-zinc-600">
-        {text}
+      <a href={href} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 underline underline-offset-2 decoration-zinc-600 mt-1 inline-block">
+        {parts}
       </a>
     );
   }
-  return <span className="text-xs text-zinc-500">{text}</span>;
+  return <span className="text-xs text-zinc-500 mt-1 inline-block">{parts}</span>;
 }
 
 export function ImagePopup({ card, onClose }: ImagePopupProps) {
@@ -61,14 +63,11 @@ export function ImagePopup({ card, onClose }: ImagePopupProps) {
             {card.setId.toUpperCase()}-{card.number.padStart(3, '0')} · {card.setName}
           </p>
           {(card.cardmarketLowPrice != null || card.cardmarketAvg30 != null) && (
-            <div className="flex items-center justify-center gap-3 mt-1">
-              {card.cardmarketLowPrice != null && (
-                <PriceLink href={card.cardmarketUrl} label="from" value={card.cardmarketLowPrice} />
-              )}
-              {card.cardmarketAvg30 != null && (
-                <PriceLink href={card.cardmarketUrl} label="avg30" value={card.cardmarketAvg30} />
-              )}
-            </div>
+            <PriceLink
+              href={card.cardmarketUrl}
+              low={card.cardmarketLowPrice}
+              avg30={card.cardmarketAvg30}
+            />
           )}
         </div>
       </div>

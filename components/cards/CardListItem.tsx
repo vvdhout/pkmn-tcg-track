@@ -74,11 +74,12 @@ export function CardListItem({
           <span className="text-[11px] text-zinc-500 font-mono">
             {card.setId.toUpperCase()}-{card.number.padStart(3, '0')}
           </span>
-          {card.cardmarketLowPrice != null && (
-            <PriceChip href={card.cardmarketUrl} label="from" value={card.cardmarketLowPrice} />
-          )}
-          {card.cardmarketAvg30 != null && (
-            <PriceChip href={card.cardmarketUrl} label="avg30" value={card.cardmarketAvg30} />
+          {(card.cardmarketLowPrice != null || card.cardmarketAvg30 != null) && (
+            <PriceChip
+              href={card.cardmarketUrl}
+              low={card.cardmarketLowPrice}
+              avg30={card.cardmarketAvg30}
+            />
           )}
           {deckLabel && (
             <span className="text-[10px] text-zinc-600 italic truncate">{deckLabel}</span>
@@ -115,8 +116,10 @@ export function CardListItem({
   );
 }
 
-function PriceChip({ href, label, value }: { href?: string; label: string; value: number }) {
-  const text = `${label} €${value.toFixed(2)}`;
+function PriceChip({ href, low, avg30 }: { href?: string; low?: number; avg30?: number }) {
+  const parts = [low != null ? `€${low.toFixed(2)}` : null, avg30 != null ? `€${avg30.toFixed(2)}` : null]
+    .filter(Boolean)
+    .join('/');
   if (href) {
     return (
       <a
@@ -126,11 +129,11 @@ function PriceChip({ href, label, value }: { href?: string; label: string; value
         onClick={(e) => e.stopPropagation()}
         className="text-[11px] text-zinc-400 underline underline-offset-2 decoration-zinc-600 touch-manipulation"
       >
-        {text}
+        {parts}
       </a>
     );
   }
-  return <span className="text-[11px] text-zinc-500">{text}</span>;
+  return <span className="text-[11px] text-zinc-500">{parts}</span>;
 }
 
 function CountButton({ onClick, aria, children }: { onClick: () => void; aria: string; children: string }) {

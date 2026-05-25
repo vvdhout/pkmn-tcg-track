@@ -93,9 +93,7 @@ function SearchResult({ card, onSelect }: { card: TcgCard; onSelect: (c: TcgCard
         </p>
         {(lowPrice != null || avg30 != null) && (
           <p className="text-[11px] text-zinc-500">
-            {lowPrice != null && `from €${lowPrice.toFixed(2)}`}
-            {lowPrice != null && avg30 != null && ' · '}
-            {avg30 != null && `avg30 €${avg30.toFixed(2)}`}
+            {[lowPrice != null ? `€${lowPrice.toFixed(2)}` : null, avg30 != null ? `€${avg30.toFixed(2)}` : null].filter(Boolean).join('/')}
           </p>
         )}
       </div>

@@ -66,7 +66,7 @@ export function ImagePopup({ card, onClose, onEdit }: ImagePopupProps) {
           {(card.cardmarketLowPrice != null || card.cardmarketAvg30 != null) && (
             <PriceLink
               href={card.cardmarketUrl
-                ? `https://www.cardmarket.com/en/Pokemon/Products/Singles?searchString=${encodeURIComponent(card.name)}&language=1&minCondition=4`
+                ? `${card.cardmarketUrl}?language=1&minCondition=4`
                 : undefined}
               low={card.cardmarketLowPrice}
               avg30={card.cardmarketAvg30}

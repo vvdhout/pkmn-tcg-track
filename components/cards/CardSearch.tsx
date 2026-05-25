@@ -73,7 +73,7 @@ function SearchResult({ card, onSelect }: { card: TcgCard; onSelect: (c: TcgCard
       : prices?.lowPrice;
   const avg30 = prices?.avg30;
   const cmHref = card.cardmarket?.url
-    ? `https://www.cardmarket.com/en/Pokemon/Products/Singles?searchString=${encodeURIComponent(card.name)}&language=1&minCondition=4`
+    ? `${card.cardmarket.url}?language=1&minCondition=4`
     : undefined;
   const priceText = [
     lowPrice != null ? `€${lowPrice.toFixed(2)}` : null,

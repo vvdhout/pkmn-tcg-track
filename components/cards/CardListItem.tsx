@@ -22,7 +22,7 @@ export function CardListItem({
 }: CardListItemProps) {
   const isComplete = card.collected >= card.needed;
   const cmHref = card.cardmarketUrl
-    ? `https://www.cardmarket.com/en/Pokemon/Products/Singles?searchString=${encodeURIComponent(card.name)}&language=1&minCondition=4`
+    ? `${card.cardmarketUrl}?language=1&minCondition=4`
     : undefined;
 
   return (

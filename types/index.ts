@@ -12,6 +12,7 @@ export interface TcgCard {
     releaseDate: string;
     printedTotal: number;
     total: number;
+    images?: { symbol?: string; logo?: string };
   };
   images: {
     small: string;
@@ -40,6 +41,7 @@ export interface TrackedCard {
   setName: string;
   imageSmall: string;
   imageLarge: string;
+  setSymbol?: string;
   cardmarketUrl?: string;
   cardmarketLowPrice?: number;
   cardmarketAvg30?: number;

@@ -122,9 +122,19 @@ function SearchResult({
       />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-zinc-100 truncate">{card.name}</p>
-        <p className="text-[11px] text-zinc-500 truncate">
-          {card.set.name} · {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')}
-        </p>
+        <div className="flex items-center gap-1 text-[11px] text-zinc-500 truncate">
+          {card.set.images?.symbol && (
+            <Image
+              src={card.set.images.symbol}
+              alt=""
+              width={13}
+              height={13}
+              className="w-[13px] h-[13px] object-contain opacity-60 flex-shrink-0"
+              unoptimized
+            />
+          )}
+          <span className="truncate">{card.set.name} · {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')}</span>
+        </div>
         {priceText && (
           cmHref ? (
             <a
@@ -212,9 +222,19 @@ function SearchImagePopup({
         />
         <div className="mt-3 text-center">
           <p className="text-sm font-semibold text-zinc-100">{card.name}</p>
-          <p className="text-xs text-zinc-500">
-            {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')} · {card.set.name}
-          </p>
+          <div className="flex items-center justify-center gap-1 text-xs text-zinc-500">
+            {card.set.images?.symbol && (
+              <Image
+                src={card.set.images.symbol}
+                alt=""
+                width={13}
+                height={13}
+                className="w-[13px] h-[13px] object-contain opacity-60"
+                unoptimized
+              />
+            )}
+            <span>{card.set.id.toUpperCase()}-{card.number.padStart(3, '0')} · {card.set.name}</span>
+          </div>
           {priceText && (
             cmHref ? (
               <a

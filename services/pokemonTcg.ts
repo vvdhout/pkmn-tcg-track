@@ -46,6 +46,7 @@ export function mapToTracked(card: TcgCard, needed = 1) {
     number: card.number,
     setId: card.set.id,
     setName: card.set.name,
+    setSymbol: card.set.images?.symbol,
     imageSmall: card.images.small,
     imageLarge: card.images.large,
     cardmarketUrl: card.cardmarket?.url,

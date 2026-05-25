@@ -58,8 +58,20 @@ export function CardListItem({
           {card.name}
         </button>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] text-zinc-500 font-mono">
-            {card.setId.toUpperCase()}-{card.number.padStart(3, '0')}
+          <span className="inline-flex items-center gap-1">
+            {card.setSymbol && (
+              <Image
+                src={card.setSymbol}
+                alt=""
+                width={14}
+                height={14}
+                className="w-3.5 h-3.5 object-contain opacity-60"
+                unoptimized
+              />
+            )}
+            <span className="text-[11px] text-zinc-500 font-mono">
+              {card.setId.toUpperCase()}-{card.number.padStart(3, '0')}
+            </span>
           </span>
           {(card.cardmarketLowPrice != null || card.cardmarketAvg30 != null) && (
             <PriceChip

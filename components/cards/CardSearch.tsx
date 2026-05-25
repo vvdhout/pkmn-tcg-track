@@ -20,18 +20,20 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [] }: Card
 
   if (mode === 'scan') {
     return (
-      <CardScanner
-        onAdd={(cards) => {
-          if (onSelectMultiple) {
-            onSelectMultiple(cards);
-          } else {
-            // Fallback: add one by one (parent won't close modal between calls)
-            cards.forEach(({ card }) => onSelect(card));
-          }
-          setMode('search');
-        }}
-        onBack={() => setMode('search')}
-      />
+      <div className="flex flex-col h-full">
+        <CardScanner
+          onAdd={(cards) => {
+            if (onSelectMultiple) {
+              onSelectMultiple(cards);
+            } else {
+              // Fallback: add one by one (parent won't close modal between calls)
+              cards.forEach(({ card }) => onSelect(card));
+            }
+            setMode('search');
+          }}
+          onBack={() => setMode('search')}
+        />
+      </div>
     );
   }
 

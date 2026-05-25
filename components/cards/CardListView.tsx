@@ -77,7 +77,8 @@ export function CardListView({
 }: CardListViewProps) {
   const [filter, setFilter] = useState<CardFilter>('all');
   const [popupCard, setPopupCard] = useState<TrackedCard | null>(null);
-  const [editCard, setEditCard] = useState<TrackedCard | null>(null);
+  const [editCardId, setEditCardId] = useState<string | null>(null);
+  const editCard = editCardId ? (cards.find((c) => c.tcgId === editCardId) ?? null) : null;
 
   const filtered = applyFilter(cards, filter);
   const sorted = sortCards(filtered);
@@ -130,18 +131,18 @@ export function CardListView({
       <ImagePopup
         card={popupCard}
         onClose={() => setPopupCard(null)}
-        onEdit={() => { setEditCard(popupCard); setPopupCard(null); }}
+        onEdit={() => { setEditCardId(popupCard!.tcgId); setPopupCard(null); }}
       />
 
       <EditQuantityModal
         card={editCard}
-        onClose={() => setEditCard(null)}
+        onClose={() => setEditCardId(null)}
         onSetNeeded={(v) => {
           if (editCard) onSetNeeded(editCard.tcgId, v);
         }}
         onRemove={() => {
           if (editCard) onRemove(editCard.tcgId);
-          setEditCard(null);
+          setEditCardId(null);
         }}
       />
     </div>

@@ -1,0 +1,82 @@
+'use client';
+
+import { useState } from 'react';
+import { useAppContext } from '@/context/AppContext';
+import { CardSearch } from '@/components/cards/CardSearch';
+import { mapToTracked } from '@/services/pokemonTcg';
+import type { TcgCard } from '@/types';
+
+export default function SearchPage() {
+  const { state, dispatch } = useAppContext();
+  const [pendingCard, setPendingCard] = useState<TcgCard | null>(null);
+
+  function handleSelect(card: TcgCard) {
+    setPendingCard(card);
+  }
+
+  function handleAddTo(deckId: string | null) {
+    if (!pendingCard) return;
+    dispatch({ type: 'ADD_CARD', deckId, card: mapToTracked(pendingCard) });
+    setPendingCard(null);
+  }
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex-shrink-0 px-4 pt-5 pb-2">
+        <h1 className="text-lg font-bold text-zinc-100">Search</h1>
+      </div>
+
+      <div className="flex-1 min-h-0">
+        <CardSearch onSelect={handleSelect} />
+      </div>
+
+      {/* Deck picker — slides up when a card is selected */}
+      {pendingCard && (
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/60"
+          onClick={() => setPendingCard(null)}
+        >
+          <div
+            className="w-full bg-app-surface border-t border-app-border"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-4 pt-4 pb-3 border-b border-app-border">
+              <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Add to</p>
+              <p className="text-sm font-semibold text-zinc-100 truncate">"{pendingCard.name}"</p>
+            </div>
+
+            {/* Deck list */}
+            <div className="overflow-y-auto max-h-64">
+              {state.decks.map((deck) => (
+                <button
+                  key={deck.id}
+                  onClick={() => handleAddTo(deck.id)}
+                  className="w-full flex items-center justify-between px-4 py-3.5 border-b border-app-border active:bg-app-elevated touch-manipulation text-left"
+                >
+                  <span className="text-sm text-zinc-100">{deck.name}</span>
+                  <span className="text-xs text-zinc-500">{deck.cards.length} cards</span>
+                </button>
+              ))}
+              <button
+                onClick={() => handleAddTo(null)}
+                className="w-full flex items-center px-4 py-3.5 border-b border-app-border active:bg-app-elevated touch-manipulation text-left"
+              >
+                <span className="text-sm text-zinc-500 italic">Standalone (no deck)</span>
+              </button>
+            </div>
+
+            {/* Cancel */}
+            <button
+              onClick={() => setPendingCard(null)}
+              className="w-full py-3.5 text-sm text-zinc-400 active:bg-app-elevated touch-manipulation"
+              style={{ paddingBottom: 'max(0.875rem, env(safe-area-inset-bottom))' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

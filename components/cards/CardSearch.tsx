@@ -72,12 +72,18 @@ function SearchResult({ card, onSelect }: { card: TcgCard; onSelect: (c: TcgCard
       ? prices.lowPriceExPlus
       : prices?.lowPrice;
   const avg30 = prices?.avg30;
+  const cmHref = card.cardmarket?.url
+    ? `${card.cardmarket.url}?language=1&minCondition=4`
+    : undefined;
+  const priceText = [
+    lowPrice != null ? `€${lowPrice.toFixed(2)}` : null,
+    avg30 != null ? `€${avg30.toFixed(2)}` : null,
+  ]
+    .filter(Boolean)
+    .join('/');
 
   return (
-    <button
-      onClick={() => onSelect(card)}
-      className="w-full flex items-center gap-3 px-4 py-3 border-b border-app-border active:bg-app-elevated touch-manipulation text-left"
-    >
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-app-border">
       <Image
         src={card.images.small}
         alt={card.name}
@@ -91,16 +97,29 @@ function SearchResult({ card, onSelect }: { card: TcgCard; onSelect: (c: TcgCard
         <p className="text-[11px] text-zinc-500 truncate">
           {card.set.name} · {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')}
         </p>
-        {(lowPrice != null || avg30 != null) && (
-          <p className="text-[11px] text-zinc-500">
-            {[lowPrice != null ? `€${lowPrice.toFixed(2)}` : null, avg30 != null ? `€${avg30.toFixed(2)}` : null].filter(Boolean).join('/')}
-          </p>
+        {priceText && (
+          cmHref ? (
+            <a
+              href={cmHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-[11px] text-zinc-400 underline underline-offset-2 decoration-zinc-600 touch-manipulation"
+            >
+              {priceText}
+            </a>
+          ) : (
+            <span className="text-[11px] text-zinc-500">{priceText}</span>
+          )
         )}
       </div>
-      <span className="text-[10px] text-zinc-600 font-medium uppercase flex-shrink-0">
-        {card.supertype[0]}
-      </span>
-    </button>
+      <button
+        onClick={() => onSelect(card)}
+        className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold bg-white text-zinc-900 active:bg-zinc-200 touch-manipulation"
+      >
+        Add
+      </button>
+    </div>
   );
 }
 

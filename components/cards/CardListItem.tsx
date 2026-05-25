@@ -79,16 +79,21 @@ export function CardListItem({
         )}
       </div>
 
-      {/* Counter — vertically stacked */}
-      <div className="flex flex-col items-center flex-shrink-0 gap-0.5">
-        <CountButton onClick={onIncrement} aria="Increase">+</CountButton>
-        <span className={`text-[11px] font-semibold tabular-nums text-center leading-none py-0.5 ${isComplete ? 'text-green-400' : 'text-zinc-200'}`}>
+      {/* Counter — horizontally stacked */}
+      <div className="flex items-center flex-shrink-0 gap-1">
+        <CountButton onClick={onDecrement} aria="Decrease">−</CountButton>
+        <span className={`text-[11px] font-semibold tabular-nums text-center leading-none w-8 ${isComplete ? 'text-green-400' : 'text-zinc-200'}`}>
           {card.collected}/{card.needed}
         </span>
-        <CountButton onClick={onDecrement} aria="Decrease">−</CountButton>
+        <CountButton onClick={onIncrement} aria="Increase">+</CountButton>
       </div>
     </div>
   );
+}
+
+function cardmarketHref(base?: string) {
+  if (!base) return undefined;
+  return `${base}?language=1&minCondition=4`;
 }
 
 function PriceChip({ href, low, avg30 }: { href?: string; low?: number; avg30?: number }) {
@@ -98,7 +103,7 @@ function PriceChip({ href, low, avg30 }: { href?: string; low?: number; avg30?: 
   if (href) {
     return (
       <a
-        href={href}
+        href={cardmarketHref(href)}
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => e.stopPropagation()}

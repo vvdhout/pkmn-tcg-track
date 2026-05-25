@@ -10,13 +10,18 @@ interface ImagePopupProps {
   onEdit?: () => void;
 }
 
+function cardmarketHref(base?: string) {
+  if (!base) return undefined;
+  return `${base}?language=1&minCondition=4`;
+}
+
 function PriceLink({ href, low, avg30 }: { href?: string; low?: number; avg30?: number }) {
   const parts = [low != null ? `€${low.toFixed(2)}` : null, avg30 != null ? `€${avg30.toFixed(2)}` : null]
     .filter(Boolean)
     .join('/');
   if (href) {
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 underline underline-offset-2 decoration-zinc-600 mt-1 inline-block">
+      <a href={cardmarketHref(href)} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 underline underline-offset-2 decoration-zinc-600 mt-1 inline-block">
         {parts}
       </a>
     );

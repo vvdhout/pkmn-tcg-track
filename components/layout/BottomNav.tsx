@@ -27,6 +27,16 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    href: '/search',
+    label: 'Search',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <circle cx="9.5" cy="9.5" r="6" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M14 14l4.5 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ];
 
 export function BottomNav() {

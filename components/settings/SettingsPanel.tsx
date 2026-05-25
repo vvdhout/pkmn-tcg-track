@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import type { TcgSet, SetRef, AppSettings } from '@/types';
 import { fetchSets } from '@/services/pokemonTcg';
 import { useAppContext } from '@/context/AppContext';
@@ -130,9 +131,21 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
                 <button
                   key={set.id}
                   onClick={() => handlePickSet(set)}
-                  className={`w-full flex items-center justify-between px-4 py-3 border-b border-app-border active:bg-app-elevated touch-manipulation text-left ${isSelected ? 'bg-app-elevated' : ''}`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 border-b border-app-border active:bg-app-elevated touch-manipulation text-left ${isSelected ? 'bg-app-elevated' : ''}`}
                 >
-                  <div className="min-w-0">
+                  {set.images?.symbol ? (
+                    <Image
+                      src={set.images.symbol}
+                      alt=""
+                      width={24}
+                      height={24}
+                      className="flex-shrink-0 object-contain"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="w-6 h-6 flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm text-zinc-100 truncate">{set.name}</p>
                     <p className="text-[11px] text-zinc-500">
                       {set.series} · {set.releaseDate.slice(0, 4)} · {set.printedTotal} cards

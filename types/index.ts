@@ -55,6 +55,7 @@ export interface TcgSet {
   series: string;
   releaseDate: string;
   printedTotal: number;
+  images?: { symbol?: string; logo?: string };
 }
 
 export interface SetRef {

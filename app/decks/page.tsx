@@ -15,7 +15,7 @@ export default function DecksPage() {
         <h1 className="text-lg font-bold text-zinc-100">My Decks</h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded bg-white text-zinc-900 text-sm font-semibold active:bg-zinc-200 touch-manipulation"
+          className="flex items-center gap-1.5 px-4 py-2 rounded border border-zinc-700 text-zinc-300 text-sm font-semibold active:bg-app-elevated touch-manipulation"
         >
           <span className="text-base leading-none">+</span>
           New Deck

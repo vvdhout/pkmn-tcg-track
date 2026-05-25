@@ -120,6 +120,24 @@ function reducer(state: AppState, action: AppAction): AppState {
       };
     }
 
+    case 'MOVE_TO_STANDALONE': {
+      const sourceDeck = state.decks.find((d) => d.id === action.deckId);
+      const card = sourceDeck?.cards.find((c) => c.tcgId === action.tcgId);
+      if (!card) return state;
+      const alreadyStandalone = state.standaloneCards.some((c) => c.tcgId === action.tcgId);
+      return {
+        ...state,
+        decks: state.decks.map((d) =>
+          d.id === action.deckId
+            ? { ...d, cards: d.cards.filter((c) => c.tcgId !== action.tcgId) }
+            : d
+        ),
+        standaloneCards: alreadyStandalone
+          ? state.standaloneCards
+          : [...state.standaloneCards, { ...card, collected: 0 }],
+      };
+    }
+
     default:
       return state;
   }

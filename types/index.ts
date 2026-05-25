@@ -72,4 +72,5 @@ export type AppAction =
   | { type: 'REMOVE_CARD'; deckId: string | null; tcgId: string }
   | { type: 'SET_COLLECTED'; deckId: string | null; tcgId: string; value: number }
   | { type: 'SET_NEEDED'; deckId: string | null; tcgId: string; value: number }
-  | { type: 'RESET_COLLECTED'; deckId: string | null };
+  | { type: 'RESET_COLLECTED'; deckId: string | null }
+  | { type: 'MOVE_TO_STANDALONE'; deckId: string; tcgId: string };

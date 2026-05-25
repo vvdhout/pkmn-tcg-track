@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { TrackedCard, CardFilter } from '@/types';
+import { useAppContext } from '@/context/AppContext';
 import { StatsBar } from './StatsBar';
 import { FilterTabs } from './FilterTabs';
 import { CardListItem } from './CardListItem';
@@ -67,6 +68,7 @@ function groupByType(cards: TrackedCard[]): Section[] {
 
 export function CardListView({
   cards,
+  deckId,
   getDeckLabel,
   getDeckCount,
   onSetCollected,
@@ -75,6 +77,7 @@ export function CardListView({
   onReset,
   footer,
 }: CardListViewProps) {
+  const { state, dispatch } = useAppContext();
   const [filter, setFilter] = useState<CardFilter>('all');
   const [popupCard, setPopupCard] = useState<TrackedCard | null>(null);
   const [editCardId, setEditCardId] = useState<string | null>(null);
@@ -85,6 +88,23 @@ export function CardListView({
   const sections = ['all', 'missing', 'complete'].includes(filter)
     ? groupByType(sorted)
     : [{ label: '', cards: sorted }];
+
+  // Available decks for "Add to deck" (standalone context) or deck label list
+  const availableDecks = state.decks.map((d) => ({ id: d.id, name: d.name }));
+
+  function handleMoveToStandalone() {
+    if (!editCard || deckId === null) return;
+    dispatch({ type: 'MOVE_TO_STANDALONE', deckId, tcgId: editCard.tcgId });
+    setEditCardId(null);
+  }
+
+  function handleAddToDeck(targetDeckId: string) {
+    if (!editCard) return;
+    // Add to target deck, then remove from standalone
+    dispatch({ type: 'ADD_CARD', deckId: targetDeckId, card: editCard });
+    dispatch({ type: 'REMOVE_CARD', deckId: null, tcgId: editCard.tcgId });
+    setEditCardId(null);
+  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -136,6 +156,8 @@ export function CardListView({
 
       <EditQuantityModal
         card={editCard}
+        deckId={deckId}
+        decks={availableDecks}
         onClose={() => setEditCardId(null)}
         onSetNeeded={(v) => {
           if (editCard) onSetNeeded(editCard.tcgId, v);
@@ -144,6 +166,8 @@ export function CardListView({
           if (editCard) onRemove(editCard.tcgId);
           setEditCardId(null);
         }}
+        onMoveToStandalone={deckId !== null ? handleMoveToStandalone : undefined}
+        onAddToDeck={deckId === null ? handleAddToDeck : undefined}
       />
     </div>
   );

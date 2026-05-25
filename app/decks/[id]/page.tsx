@@ -13,14 +13,17 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
+type ConflictItem = { tcgCard: TcgCard; needed: number };
+
 export default function DeckDetailPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
   const deck = state.decks.find((d) => d.id === id);
   const { addCard, removeCard, setCollected, setNeeded, resetCollected } = useCardActions(id);
   const { deleteDeck } = useDecks();
   const [showSearch, setShowSearch] = useState(false);
+  const [standaloneConflict, setStandaloneConflict] = useState<ConflictItem[] | null>(null);
 
   if (!deck) {
     return (
@@ -31,13 +34,52 @@ export default function DeckDetailPage({ params }: Props) {
   }
 
   function handleSelectCard(tcgCard: TcgCard) {
+    const isStandalone = state.standaloneCards.some((c) => c.tcgId === tcgCard.id);
+    if (isStandalone) {
+      setStandaloneConflict([{ tcgCard, needed: 1 }]);
+      setShowSearch(false);
+      return;
+    }
     addCard(mapToTracked(tcgCard));
     setShowSearch(false);
   }
 
   function handleSelectMultiple(cards: { card: TcgCard; needed: number }[]) {
-    cards.forEach(({ card, needed }) => addCard(mapToTracked(card, needed)));
+    const conflicts: ConflictItem[] = [];
+    const nonConflicts: { card: TcgCard; needed: number }[] = [];
+
+    cards.forEach(({ card, needed }) => {
+      if (state.standaloneCards.some((c) => c.tcgId === card.id)) {
+        conflicts.push({ tcgCard: card, needed });
+      } else {
+        nonConflicts.push({ card, needed });
+      }
+    });
+
+    nonConflicts.forEach(({ card, needed }) => addCard(mapToTracked(card, needed)));
+
+    if (conflicts.length > 0) {
+      setStandaloneConflict(conflicts);
+    }
+
     setShowSearch(false);
+  }
+
+  function handleConflictMove() {
+    if (!standaloneConflict) return;
+    standaloneConflict.forEach(({ tcgCard, needed }) => {
+      dispatch({ type: 'REMOVE_CARD', deckId: null, tcgId: tcgCard.id });
+      addCard(mapToTracked(tcgCard, needed));
+    });
+    setStandaloneConflict(null);
+  }
+
+  function handleConflictCopy() {
+    if (!standaloneConflict) return;
+    standaloneConflict.forEach(({ tcgCard, needed }) => {
+      addCard(mapToTracked(tcgCard, needed));
+    });
+    setStandaloneConflict(null);
   }
 
   const existingIds = deck.cards.map((c) => c.tcgId);
@@ -88,6 +130,58 @@ export default function DeckDetailPage({ params }: Props) {
       >
         <CardSearch onSelect={handleSelectCard} onSelectMultiple={handleSelectMultiple} excludeIds={existingIds} />
       </Modal>
+
+      {/* Standalone conflict overlay — appears above Modal (z-[60]) */}
+      {standaloneConflict && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end bg-black/60"
+          onClick={() => setStandaloneConflict(null)}
+        >
+          <div
+            className="w-full bg-app-surface border-t border-app-border"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-4 pt-4 pb-3 border-b border-app-border">
+              <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-0.5">
+                Already in Standalone
+              </p>
+              <p className="text-sm font-semibold text-zinc-100">
+                {standaloneConflict.length === 1
+                  ? `"${standaloneConflict[0].tcgCard.name}" is already a standalone card.`
+                  : `${standaloneConflict.length} cards are already standalone cards.`}
+              </p>
+            </div>
+
+            {/* Move option */}
+            <button
+              onClick={handleConflictMove}
+              className="w-full flex items-center justify-between px-4 py-3.5 border-b border-app-border active:bg-app-elevated touch-manipulation text-left"
+            >
+              <span className="text-sm text-zinc-100">Move to this deck</span>
+              <span className="text-xs text-zinc-500">Removes from standalone</span>
+            </button>
+
+            {/* Copy option */}
+            <button
+              onClick={handleConflictCopy}
+              className="w-full flex items-center justify-between px-4 py-3.5 border-b border-app-border active:bg-app-elevated touch-manipulation text-left"
+            >
+              <span className="text-sm text-zinc-100">Add a copy to deck</span>
+              <span className="text-xs text-zinc-500">Keeps standalone too</span>
+            </button>
+
+            {/* Cancel */}
+            <button
+              onClick={() => setStandaloneConflict(null)}
+              className="w-full py-3.5 text-sm text-zinc-400 active:bg-app-elevated touch-manipulation"
+              style={{ paddingBottom: 'max(0.875rem, env(safe-area-inset-bottom))' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import type { TcgCard } from '@/types';
-import { findCards, searchCards } from '@/services/pokemonTcg';
+import { findCards, searchCards, type SearchOptions } from '@/services/pokemonTcg';
+import { useAppContext } from '@/context/AppContext';
 
 interface ScannedRaw {
   name: string;
@@ -30,6 +31,12 @@ interface CardScannerProps {
 type Phase = 'idle' | 'processing' | 'confirming';
 
 export function CardScanner({ onAdd, onBack }: CardScannerProps) {
+  const { state } = useAppContext();
+  const searchOptions: SearchOptions = {
+    sortOrder: state.settings.searchSortOrder,
+    setDateFrom: state.settings.setRangeFrom?.releaseDate,
+    setDateTo: state.settings.setRangeTo?.releaseDate,
+  };
   const [phase, setPhase] = useState<Phase>('idle');
   const [results, setResults] = useState<ScanResult[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +106,7 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
     const resolved = await Promise.all(
       scanned.map(async (raw, i): Promise<ScanResult> => {
         try {
-          const candidates = await findCards(raw.name, raw.setCode, raw.number);
+          const candidates = await findCards(raw.name, raw.setCode, raw.number, searchOptions);
           if (candidates.length === 0) {
             return { id: String(i), raw, status: 'not_found', candidates: [], selected: null };
           }
@@ -192,6 +199,7 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
         </div>
         <InlineSearch
           initialQuery={target?.raw.name ?? ''}
+          options={searchOptions}
           onSelect={(card) => resolveFromSearch(searchingForId, card)}
         />
       </div>
@@ -322,9 +330,11 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
 
 function InlineSearch({
   initialQuery,
+  options,
   onSelect,
 }: {
   initialQuery: string;
+  options: SearchOptions;
   onSelect: (card: TcgCard) => void;
 }) {
   const [query, setQuery] = useState(initialQuery);
@@ -337,7 +347,7 @@ function InlineSearch({
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const results = await searchCards(q);
+        const results = await searchCards(q, 1, options);
         setCards(results);
       } catch {
         setCards([]);
@@ -346,13 +356,15 @@ function InlineSearch({
       }
     }, 350);
     return () => clearTimeout(timer);
+  // options reference is stable per render — intentionally omitted from deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
   // Kick off a search immediately with the pre-filled name
   useEffect(() => {
     if (!initialQuery.trim()) return;
     setLoading(true);
-    searchCards(initialQuery.trim())
+    searchCards(initialQuery.trim(), 1, options)
       .then(setCards)
       .catch(() => setCards([]))
       .finally(() => setLoading(false));

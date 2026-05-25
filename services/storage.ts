@@ -2,7 +2,11 @@ import type { AppState } from '@/types';
 
 const KEY = 'pkmn-tcg-track-v1';
 
-const DEFAULT: AppState = { decks: [], standaloneCards: [] };
+const DEFAULT: AppState = {
+  decks: [],
+  standaloneCards: [],
+  settings: { searchSortOrder: 'asc', setRangeFrom: null, setRangeTo: null },
+};
 
 export function loadState(): AppState {
   if (typeof window === 'undefined') return DEFAULT;

@@ -1,4 +1,4 @@
-import type { TcgCard } from '@/types';
+import type { TcgCard, TcgSet } from '@/types';
 
 const BASE_URL = 'https://api.pokemontcg.io/v2';
 const SELECTED_FIELDS = 'id,name,supertype,subtypes,types,number,set,images,cardmarket';
@@ -8,12 +8,37 @@ function headers(): HeadersInit {
   return key ? { 'X-Api-Key': key } : {};
 }
 
-export async function searchCards(query: string, page = 1): Promise<TcgCard[]> {
+export interface SearchOptions {
+  sortOrder?: 'asc' | 'desc'; // 'asc' = oldest first (default)
+  setDateFrom?: string;        // YYYY/MM/DD — include sets released on or after this date
+  setDateTo?: string;          // YYYY/MM/DD — include sets released on or before this date
+}
+
+function buildOrderBy(options?: SearchOptions): string {
+  return options?.sortOrder === 'desc' ? '-set.releaseDate' : 'set.releaseDate';
+}
+
+/** Normalise and return a date-range filter string to append to a query, or ''. */
+function dateRangeFilter(options?: SearchOptions): string {
+  let from = options?.setDateFrom;
+  let to = options?.setDateTo;
+  // Swap if user configured them backwards
+  if (from && to && from > to) [from, to] = [to, from];
+  const parts: string[] = [];
+  if (from) parts.push(`set.releaseDate>=${from}`);
+  if (to) parts.push(`set.releaseDate<=${to}`);
+  return parts.join(' ');
+}
+
+export async function searchCards(query: string, page = 1, options?: SearchOptions): Promise<TcgCard[]> {
   if (!query.trim()) return [];
-  const q = `name:*${query.trim()}*`;
+  const namePart = `name:*${query.trim()}*`;
+  const dateFilter = dateRangeFilter(options);
+  const q = [namePart, dateFilter].filter(Boolean).join(' ');
+
   const url = new URL(`${BASE_URL}/cards`);
   url.searchParams.set('q', q);
-  url.searchParams.set('orderBy', 'set.releaseDate');
+  url.searchParams.set('orderBy', buildOrderBy(options));
   url.searchParams.set('pageSize', '20');
   url.searchParams.set('page', String(page));
   url.searchParams.set('select', SELECTED_FIELDS);
@@ -35,18 +60,22 @@ export async function findCards(
   name: string,
   setCode?: string | null,
   number?: string | null,
+  options?: SearchOptions,
 ): Promise<TcgCard[]> {
   // Strip "/198" total suffix and leading zeros from number
   const cleanNumber = number?.replace(/\/.*$/, '').replace(/^0+(\d)/, '$1') ?? null;
+  const dateFilter = dateRangeFilter(options);
+  const orderBy = buildOrderBy(options);
 
   async function query(namePart: string, useSet: boolean, useNumber: boolean): Promise<TcgCard[]> {
     const parts = [namePart];
     if (useSet && setCode) parts.push(`set.id:${setCode.toLowerCase()}`);
     if (useNumber && cleanNumber) parts.push(`number:${cleanNumber}`);
+    if (dateFilter) parts.push(dateFilter);
     const url = new URL(`${BASE_URL}/cards`);
     url.searchParams.set('q', parts.join(' '));
     url.searchParams.set('pageSize', '20');
-    url.searchParams.set('orderBy', 'set.releaseDate');
+    url.searchParams.set('orderBy', orderBy);
     url.searchParams.set('select', SELECTED_FIELDS);
     const res = await fetch(url.toString(), { headers: headers() });
     if (!res.ok) return [];
@@ -74,6 +103,17 @@ export async function findCards(
 
   // 4. Wildcard name only (last resort — no set or number filter)
   return query(`name:*${name}*`, false, false);
+}
+
+export async function fetchSets(): Promise<TcgSet[]> {
+  const url = new URL(`${BASE_URL}/sets`);
+  url.searchParams.set('orderBy', 'releaseDate'); // oldest first
+  url.searchParams.set('pageSize', '250');
+  url.searchParams.set('select', 'id,name,series,releaseDate,printedTotal');
+  const res = await fetch(url.toString(), { headers: headers() });
+  if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
+  const json = await res.json();
+  return json.data as TcgSet[];
 }
 
 export function mapToTracked(card: TcgCard, needed = 1) {

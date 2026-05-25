@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { CardSearch } from '@/components/cards/CardSearch';
+import { SettingsPanel } from '@/components/settings/SettingsPanel';
 import { mapToTracked } from '@/services/pokemonTcg';
 import type { TcgCard } from '@/types';
 
@@ -11,6 +12,7 @@ type Pending = { card: TcgCard; needed: number }[];
 export default function SearchPage() {
   const { state, dispatch } = useAppContext();
   const [pending, setPending] = useState<Pending | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   function handleSelect(card: TcgCard) {
     setPending([{ card, needed: 1 }]);
@@ -35,10 +37,28 @@ export default function SearchPage() {
     ? `Add "${pending[0].card.name}"`
     : '';
 
+  const { settings } = state;
+  const hasFilter = settings.setRangeFrom || settings.setRangeTo;
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-shrink-0 px-4 pt-5 pb-2">
-        <h1 className="text-lg font-bold text-zinc-100">Search</h1>
+      {/* Header */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-5 pb-2">
+        <div>
+          <h1 className="text-lg font-bold text-zinc-100">Search</h1>
+          {hasFilter && (
+            <p className="text-[11px] text-zinc-500 mt-0.5">
+              {settings.setRangeFrom?.name ?? 'All sets'} → {settings.setRangeTo?.name ?? 'Present'}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={() => setShowSettings(true)}
+          className={`w-8 h-8 flex items-center justify-center touch-manipulation ${hasFilter ? 'text-white' : 'text-zinc-500 active:text-zinc-300'}`}
+          aria-label="Search settings"
+        >
+          <GearIcon active={!!hasFilter} />
+        </button>
       </div>
 
       <div className="flex-1 min-h-0">
@@ -95,6 +115,23 @@ export default function SearchPage() {
           </div>
         </div>
       )}
+
+      {/* Settings panel */}
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
     </div>
+  );
+}
+
+function GearIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className={active ? 'text-white' : 'text-zinc-500'}>
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }

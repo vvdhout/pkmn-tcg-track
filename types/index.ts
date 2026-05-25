@@ -49,6 +49,26 @@ export interface TrackedCard {
   needed: number;
 }
 
+export interface TcgSet {
+  id: string;
+  name: string;
+  series: string;
+  releaseDate: string;
+  printedTotal: number;
+}
+
+export interface SetRef {
+  id: string;
+  name: string;
+  releaseDate: string; // YYYY/MM/DD
+}
+
+export interface AppSettings {
+  searchSortOrder: 'asc' | 'desc'; // 'asc' = oldest first
+  setRangeFrom: SetRef | null;
+  setRangeTo: SetRef | null;
+}
+
 export interface Deck {
   id: string;
   name: string;
@@ -59,6 +79,7 @@ export interface Deck {
 export interface AppState {
   decks: Deck[];
   standaloneCards: TrackedCard[];
+  settings: AppSettings;
 }
 
 export type CardFilter = 'all' | 'pokemon' | 'trainer' | 'energy' | 'missing' | 'complete';
@@ -73,4 +94,5 @@ export type AppAction =
   | { type: 'SET_COLLECTED'; deckId: string | null; tcgId: string; value: number }
   | { type: 'SET_NEEDED'; deckId: string | null; tcgId: string; value: number }
   | { type: 'RESET_COLLECTED'; deckId: string | null }
-  | { type: 'MOVE_TO_STANDALONE'; deckId: string; tcgId: string };
+  | { type: 'MOVE_TO_STANDALONE'; deckId: string; tcgId: string }
+  | { type: 'UPDATE_SETTINGS'; settings: Partial<AppSettings> };

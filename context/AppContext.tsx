@@ -9,15 +9,25 @@ import {
   useMemo,
   type ReactNode,
 } from 'react';
-import type { AppState, AppAction, TrackedCard } from '@/types';
+import type { AppState, AppAction, AppSettings, TrackedCard } from '@/types';
 import { loadState, saveState } from '@/services/storage';
 
-const DEFAULT: AppState = { decks: [], standaloneCards: [] };
+const DEFAULT_SETTINGS: AppSettings = {
+  searchSortOrder: 'asc',
+  setRangeFrom: null,
+  setRangeTo: null,
+};
+
+const DEFAULT: AppState = { decks: [], standaloneCards: [], settings: DEFAULT_SETTINGS };
 
 function reducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'LOAD':
-      return action.payload;
+      // Migrate older stored states that predate the settings field
+      return {
+        ...action.payload,
+        settings: action.payload.settings ?? DEFAULT_SETTINGS,
+      };
 
     case 'CREATE_DECK':
       return {
@@ -119,6 +129,9 @@ function reducer(state: AppState, action: AppAction): AppState {
         }),
       };
     }
+
+    case 'UPDATE_SETTINGS':
+      return { ...state, settings: { ...state.settings, ...action.settings } };
 
     case 'MOVE_TO_STANDALONE': {
       const sourceDeck = state.decks.find((d) => d.id === action.deckId);

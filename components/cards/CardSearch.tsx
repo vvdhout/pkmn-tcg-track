@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import { usePokemonSearch } from '@/hooks/usePokemonSearch';
 import type { TcgCard } from '@/types';
 
@@ -11,6 +12,7 @@ interface CardSearchProps {
 
 export function CardSearch({ onSelect, excludeIds = [] }: CardSearchProps) {
   const { query, setQuery, results, loading, error, clear } = usePokemonSearch();
+  const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
   const filtered = results.filter((c) => !excludeIds.includes(c.id));
 
   return (
@@ -62,14 +64,33 @@ export function CardSearch({ onSelect, excludeIds = [] }: CardSearchProps) {
           <p className="text-center text-sm text-zinc-600 px-4 py-8">Type to search cards</p>
         )}
         {filtered.map((card) => (
-          <SearchResult key={card.id} card={card} onSelect={onSelect} />
+          <SearchResult
+            key={card.id}
+            card={card}
+            onSelect={onSelect}
+            onImageClick={setPopupCard}
+          />
         ))}
       </div>
+
+      <SearchImagePopup
+        card={popupCard}
+        onClose={() => setPopupCard(null)}
+        onAdd={(card) => { onSelect(card); setPopupCard(null); }}
+      />
     </div>
   );
 }
 
-function SearchResult({ card, onSelect }: { card: TcgCard; onSelect: (c: TcgCard) => void }) {
+function SearchResult({
+  card,
+  onSelect,
+  onImageClick,
+}: {
+  card: TcgCard;
+  onSelect: (c: TcgCard) => void;
+  onImageClick: (c: TcgCard) => void;
+}) {
   const prices = card.cardmarket?.prices;
   const lowPrice =
     prices?.lowPriceExPlus != null && prices.lowPriceExPlus > 0
@@ -87,7 +108,10 @@ function SearchResult({ card, onSelect }: { card: TcgCard; onSelect: (c: TcgCard
     .join('/');
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b border-app-border">
+    <div
+      className="flex items-center gap-3 px-4 py-3 border-b border-app-border active:bg-app-elevated touch-manipulation"
+      onClick={() => onImageClick(card)}
+    >
       <Image
         src={card.images.small}
         alt={card.name}
@@ -118,11 +142,100 @@ function SearchResult({ card, onSelect }: { card: TcgCard; onSelect: (c: TcgCard
         )}
       </div>
       <button
-        onClick={() => onSelect(card)}
+        onClick={(e) => { e.stopPropagation(); onSelect(card); }}
         className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold bg-white text-zinc-900 active:bg-zinc-200 touch-manipulation"
       >
         Add
       </button>
+    </div>
+  );
+}
+
+function SearchImagePopup({
+  card,
+  onClose,
+  onAdd,
+}: {
+  card: TcgCard | null;
+  onClose: () => void;
+  onAdd: (card: TcgCard) => void;
+}) {
+  useEffect(() => {
+    if (!card) return;
+    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [card, onClose]);
+
+  if (!card) return null;
+
+  const prices = card.cardmarket?.prices;
+  const lowPrice =
+    prices?.lowPriceExPlus != null && prices.lowPriceExPlus > 0
+      ? prices.lowPriceExPlus
+      : prices?.lowPrice;
+  const avg30 = prices?.avg30;
+  const cmHref = card.cardmarket?.url
+    ? `${card.cardmarket.url}?language=1&minCondition=4`
+    : undefined;
+  const priceText = [
+    lowPrice != null ? `€${lowPrice.toFixed(2)}` : null,
+    avg30 != null ? `€${avg30.toFixed(2)}` : null,
+  ]
+    .filter(Boolean)
+    .join('/');
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/85 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="relative max-w-xs w-full" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute -top-3 -right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-300 shadow-lg active:bg-zinc-700 touch-manipulation"
+          aria-label="Close"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </button>
+        <Image
+          src={card.images.large}
+          alt={card.name}
+          width={420}
+          height={588}
+          className="w-full h-auto rounded-lg shadow-2xl"
+          unoptimized
+          priority
+        />
+        <div className="mt-3 text-center">
+          <p className="text-sm font-semibold text-zinc-100">{card.name}</p>
+          <p className="text-xs text-zinc-500">
+            {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')} · {card.set.name}
+          </p>
+          {priceText && (
+            cmHref ? (
+              <a
+                href={cmHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-zinc-400 underline underline-offset-2 decoration-zinc-600 mt-1 inline-block"
+              >
+                {priceText}
+              </a>
+            ) : (
+              <span className="text-xs text-zinc-500 mt-1 inline-block">{priceText}</span>
+            )
+          )}
+        </div>
+        <button
+          onClick={() => onAdd(card)}
+          className="mt-3 w-full py-2.5 text-sm font-medium text-zinc-300 border border-zinc-700 bg-zinc-800/60 active:bg-zinc-700 touch-manipulation"
+        >
+          Add card
+        </button>
+      </div>
     </div>
   );
 }

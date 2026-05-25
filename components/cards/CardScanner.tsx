@@ -42,7 +42,18 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
   const [error, setError] = useState<string | null>(null);
   const [textInput, setTextInput] = useState('');
   const [searchingForId, setSearchingForId] = useState<string | null>(null);
+  const [choosingVersionForId, setChoosingVersionForId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Auto-open version picker when there is exactly one scanned card and it's ambiguous
+  useEffect(() => {
+    if (phase !== 'confirming') return;
+    if (results.length !== 1) return;
+    const r = results[0];
+    if (r.status === 'ambiguous' && r.selected === null && choosingVersionForId === null) {
+      setChoosingVersionForId(r.id);
+    }
+  }, [results, phase, choosingVersionForId]);
 
   async function handleFile(file: File) {
     setError(null);
@@ -135,14 +146,15 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
     setResults(resolved);
   }
 
-  function toggleCandidate(resultId: string, card: TcgCard) {
+  function resolveVersion(resultId: string, card: TcgCard) {
     setResults((prev) =>
       prev.map((r) =>
         r.id === resultId
-          ? { ...r, selected: r.selected?.id === card.id ? null : card }
+          ? { ...r, status: 'resolved', candidates: [card], selected: card }
           : r,
       ),
     );
+    setChoosingVersionForId(null);
   }
 
   function resolveFromSearch(resultId: string, card: TcgCard) {
@@ -178,7 +190,7 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
     );
   }
 
-  /* ── Confirming — inline search sub-view ── */
+  /* ── Confirming — inline search sub-view (not-found manual search) ── */
   if (phase === 'confirming' && searchingForId !== null) {
     const target = results.find((r) => r.id === searchingForId);
     return (
@@ -189,9 +201,7 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
             className="w-8 h-8 flex items-center justify-center rounded-full bg-app-elevated text-zinc-400 active:bg-app-muted touch-manipulation flex-shrink-0"
             aria-label="Back to results"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <BackArrowIcon />
           </button>
           <p className="text-sm font-semibold text-zinc-100 truncate">
             Search for &ldquo;{target?.raw.name}&rdquo;
@@ -201,6 +211,31 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
           initialQuery={target?.raw.name ?? ''}
           options={searchOptions}
           onSelect={(card) => resolveFromSearch(searchingForId, card)}
+        />
+      </div>
+    );
+  }
+
+  /* ── Confirming — version picker sub-view (ambiguous candidates) ── */
+  if (phase === 'confirming' && choosingVersionForId !== null) {
+    const target = results.find((r) => r.id === choosingVersionForId);
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-app-border">
+          <button
+            onClick={() => setChoosingVersionForId(null)}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-app-elevated text-zinc-400 active:bg-app-muted touch-manipulation flex-shrink-0"
+            aria-label="Back to results"
+          >
+            <BackArrowIcon />
+          </button>
+          <p className="text-sm font-semibold text-zinc-100 truncate">
+            Choose version for &ldquo;{target?.raw.name}&rdquo;
+          </p>
+        </div>
+        <VersionPicker
+          candidates={target?.candidates ?? []}
+          onSelect={(card) => resolveVersion(choosingVersionForId, card)}
         />
       </div>
     );
@@ -228,8 +263,8 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
             <ScanResultRow
               key={result.id}
               result={result}
-              onToggle={toggleCandidate}
               onSearch={(id) => setSearchingForId(id)}
+              onChooseVersion={(id) => setChoosingVersionForId(id)}
             />
           ))}
         </div>
@@ -320,6 +355,203 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
           }`}
         >
           Analyze list
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Version picker (for ambiguous candidates) ── */
+
+function VersionPicker({
+  candidates,
+  onSelect,
+}: {
+  candidates: TcgCard[];
+  onSelect: (card: TcgCard) => void;
+}) {
+  const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
+
+  return (
+    <>
+      <div className="flex-1 overflow-y-auto">
+        {candidates.map((card) => {
+          const prices = card.cardmarket?.prices;
+          const lowPrice =
+            prices?.lowPriceExPlus != null && prices.lowPriceExPlus > 0
+              ? prices.lowPriceExPlus
+              : prices?.lowPrice;
+          const avg30 = prices?.avg30;
+          const cmHref = card.cardmarket?.url
+            ? `${card.cardmarket.url}?language=1&minCondition=4`
+            : undefined;
+          const priceText = [
+            lowPrice != null ? `€${lowPrice.toFixed(2)}` : null,
+            avg30 != null ? `€${avg30.toFixed(2)}` : null,
+          ]
+            .filter(Boolean)
+            .join('/');
+
+          return (
+            <div
+              key={card.id}
+              className="flex items-center gap-3 px-4 py-3 border-b border-app-border"
+            >
+              <button
+                onClick={() => setPopupCard(card)}
+                className="flex-shrink-0 touch-manipulation"
+                aria-label="View card image"
+              >
+                <Image
+                  src={card.images.small}
+                  alt={card.name}
+                  width={36}
+                  height={50}
+                  className="w-9 h-[50px] rounded object-cover"
+                  unoptimized
+                />
+              </button>
+              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <p className="text-sm font-medium text-zinc-100 truncate">{card.name}</p>
+                <div className="flex items-center gap-1 text-[11px] text-zinc-500 truncate">
+                  {card.set.images?.symbol && (
+                    <Image
+                      src={card.set.images.symbol}
+                      alt=""
+                      width={13}
+                      height={13}
+                      className="w-[13px] h-[13px] object-contain opacity-60 flex-shrink-0"
+                      unoptimized
+                    />
+                  )}
+                  <span className="truncate">
+                    {card.set.name} · {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')}
+                  </span>
+                </div>
+                {priceText && (
+                  cmHref ? (
+                    <a
+                      href={cmHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-[11px] text-zinc-400 underline underline-offset-2 decoration-zinc-600 touch-manipulation"
+                    >
+                      {priceText}
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-zinc-500">{priceText}</span>
+                  )
+                )}
+              </div>
+              <button
+                onClick={() => onSelect(card)}
+                className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold bg-white text-zinc-900 active:bg-zinc-200 touch-manipulation rounded-sm"
+              >
+                Select
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {popupCard && (
+        <VersionImagePopup
+          card={popupCard}
+          onClose={() => setPopupCard(null)}
+          onSelect={() => { onSelect(popupCard); setPopupCard(null); }}
+        />
+      )}
+    </>
+  );
+}
+
+/* ── Image popup for version picker ── */
+
+function VersionImagePopup({
+  card,
+  onClose,
+  onSelect,
+}: {
+  card: TcgCard;
+  onClose: () => void;
+  onSelect: () => void;
+}) {
+  const prices = card.cardmarket?.prices;
+  const lowPrice =
+    prices?.lowPriceExPlus != null && prices.lowPriceExPlus > 0
+      ? prices.lowPriceExPlus
+      : prices?.lowPrice;
+  const avg30 = prices?.avg30;
+  const cmHref = card.cardmarket?.url
+    ? `${card.cardmarket.url}?language=1&minCondition=4`
+    : undefined;
+  const priceText = [
+    lowPrice != null ? `€${lowPrice.toFixed(2)}` : null,
+    avg30 != null ? `€${avg30.toFixed(2)}` : null,
+  ]
+    .filter(Boolean)
+    .join('/');
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/85 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="relative max-w-xs w-full" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute -top-3 -right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-300 shadow-lg active:bg-zinc-700 touch-manipulation"
+          aria-label="Close"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </button>
+        <Image
+          src={card.images.large}
+          alt={card.name}
+          width={420}
+          height={588}
+          className="w-full h-auto rounded-lg shadow-2xl"
+          unoptimized
+          priority
+        />
+        <div className="mt-3 text-center">
+          <p className="text-sm font-semibold text-zinc-100">{card.name}</p>
+          <div className="flex items-center justify-center gap-1 text-xs text-zinc-500">
+            {card.set.images?.symbol && (
+              <Image
+                src={card.set.images.symbol}
+                alt=""
+                width={13}
+                height={13}
+                className="w-[13px] h-[13px] object-contain opacity-60"
+                unoptimized
+              />
+            )}
+            <span>{card.set.id.toUpperCase()}-{card.number.padStart(3, '0')} · {card.set.name}</span>
+          </div>
+          {priceText && (
+            cmHref ? (
+              <a
+                href={cmHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-zinc-400 underline underline-offset-2 decoration-zinc-600 mt-1 inline-block"
+              >
+                {priceText}
+              </a>
+            ) : (
+              <span className="text-xs text-zinc-500 mt-1 inline-block">{priceText}</span>
+            )
+          )}
+        </div>
+        <button
+          onClick={onSelect}
+          className="mt-3 w-full py-2.5 text-sm font-medium bg-white text-zinc-900 active:bg-zinc-200 touch-manipulation"
+        >
+          Select version
         </button>
       </div>
     </div>
@@ -439,12 +671,12 @@ function InlineSearch({
 
 function ScanResultRow({
   result,
-  onToggle,
   onSearch,
+  onChooseVersion,
 }: {
   result: ScanResult;
-  onToggle: (id: string, card: TcgCard) => void;
   onSearch: (id: string) => void;
+  onChooseVersion: (id: string) => void;
 }) {
   if (result.status === 'loading') {
     return (
@@ -508,42 +740,23 @@ function ScanResultRow({
 
   if (result.status === 'ambiguous') {
     return (
-      <div className="border-b border-app-border px-4 py-3">
-        <div className="flex items-center justify-between mb-1.5">
-          <p className="text-sm font-medium text-zinc-300">{result.raw.name}</p>
-          {result.raw.quantity > 1 && (
-            <span className="text-xs text-zinc-500">×{result.raw.quantity}</span>
-          )}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-app-border">
+        <div className="w-9 h-[50px] flex items-center justify-center flex-shrink-0 text-zinc-600">
+          <LayersIcon />
         </div>
-        <p className="text-[11px] text-amber-600 mb-2">
-          {result.selected ? '1 version selected' : 'Multiple versions — tap to select one:'}
-        </p>
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {result.candidates.map((card) => {
-            const isSelected = result.selected?.id === card.id;
-            return (
-              <button
-                key={card.id}
-                onClick={() => onToggle(result.id, card)}
-                className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 rounded touch-manipulation transition-opacity ${
-                  isSelected ? '' : 'opacity-40 active:opacity-100'
-                }`}
-              >
-                <Image
-                  src={card.images.small}
-                  alt={card.name}
-                  width={52}
-                  height={72}
-                  className="w-[52px] h-[72px] rounded object-cover"
-                  unoptimized
-                />
-                <span className={`text-[9px] w-[52px] text-center leading-tight ${isSelected ? 'text-zinc-300 underline underline-offset-2' : 'text-zinc-500'}`}>
-                  {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')}
-                </span>
-              </button>
-            );
-          })}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-zinc-100 truncate">{result.raw.name}</p>
+          <p className="text-[11px] text-zinc-500">{result.candidates.length} versions found</p>
         </div>
+        {result.raw.quantity > 1 && (
+          <span className="text-xs text-zinc-500 flex-shrink-0">×{result.raw.quantity}</span>
+        )}
+        <button
+          onClick={() => onChooseVersion(result.id)}
+          className="flex-shrink-0 px-2.5 py-1 text-xs text-zinc-300 border border-zinc-700 rounded active:bg-app-elevated touch-manipulation"
+        >
+          Choose Version
+        </button>
       </div>
     );
   }
@@ -595,6 +808,14 @@ function CameraIcon() {
   );
 }
 
+function BackArrowIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function CheckIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-green-400 flex-shrink-0">
@@ -608,6 +829,16 @@ function XIcon() {
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
       <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
       <path d="M7 7l6 6M13 7l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function LayersIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

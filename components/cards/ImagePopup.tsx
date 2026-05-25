@@ -60,9 +60,19 @@ export function ImagePopup({ card, onClose, onEdit }: ImagePopupProps) {
         />
         <div className="mt-3 text-center">
           <p className="text-sm font-semibold text-zinc-100">{card.name}</p>
-          <p className="text-xs text-zinc-500">
-            {card.setId.toUpperCase()}-{card.number.padStart(3, '0')} · {card.setName}
-          </p>
+          <div className="flex items-center justify-center gap-1 text-xs text-zinc-500">
+            {card.setSymbol && (
+              <Image
+                src={card.setSymbol}
+                alt=""
+                width={13}
+                height={13}
+                className="w-[13px] h-[13px] object-contain opacity-60"
+                unoptimized
+              />
+            )}
+            <span>{card.setId.toUpperCase()}-{card.number.padStart(3, '0')} · {card.setName}</span>
+          </div>
           {(card.cardmarketLowPrice != null || card.cardmarketAvg30 != null) && (
             <PriceLink
               href={card.cardmarketUrl

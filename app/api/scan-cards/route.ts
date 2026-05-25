@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       }
       if (status === 404) {
         return NextResponse.json(
-          { error: 'No accessible Claude model found for this API key. Try adding billing at console.anthropic.com.' },
+          { error: `Model 404 — Anthropic said: ${lastErrText.slice(0, 200)}` },
           { status: 500 },
         );
       }

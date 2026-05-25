@@ -27,10 +27,9 @@ const DEFAULT: AppState = { decks: [], standaloneCards: [], settings: DEFAULT_SE
 function reducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'LOAD':
-      // Migrate older stored states that predate the settings field
       return {
         ...action.payload,
-        settings: action.payload.settings ?? DEFAULT_SETTINGS,
+        settings: { ...DEFAULT_SETTINGS, ...(action.payload.settings ?? {}) },
       };
 
     case 'CREATE_DECK':

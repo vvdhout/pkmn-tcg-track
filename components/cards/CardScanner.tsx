@@ -183,10 +183,12 @@ export function CardScanner({ onSelect, onSelectMultiple, onBack }: CardScannerP
                       unoptimized
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-zinc-100 truncate">{selected.name}</p>
-                      {raw.quantity > 1 && (
-                        <p className="text-[11px] text-zinc-600">×{raw.quantity}</p>
-                      )}
+                      <div className="flex items-baseline gap-1.5 min-w-0">
+                        <p className="text-sm text-zinc-100 truncate">{selected.name}</p>
+                        {raw.quantity > 1 && (
+                          <span className="text-[11px] text-zinc-500 flex-shrink-0">×{raw.quantity}</span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1 text-[11px] text-zinc-500 truncate">
                         {selected.set.images?.symbol && (
                           <Image

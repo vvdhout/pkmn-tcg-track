@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import type { TcgCard } from '@/types';
-import { findCards, searchCards, type SearchOptions } from '@/services/pokemonTcg';
+import { searchCards, type SearchOptions } from '@/services/pokemonTcg';
 import { useAppContext } from '@/context/AppContext';
 
 interface ScannedRaw {
@@ -13,47 +13,34 @@ interface ScannedRaw {
   number: string | null;
 }
 
-type ResultStatus = 'loading' | 'resolved' | 'ambiguous' | 'not_found';
-
-interface ScanResult {
-  id: string;
-  raw: ScannedRaw;
-  status: ResultStatus;
-  candidates: TcgCard[];
-  selected: TcgCard | null;
-}
-
 interface CardScannerProps {
-  onAdd: (cards: { card: TcgCard; needed: number }[]) => void;
+  onSelect: (card: TcgCard) => void;
   onBack: () => void;
 }
 
-type Phase = 'idle' | 'processing' | 'confirming';
+type Phase = 'idle' | 'processing' | 'hub' | 'results';
 
-export function CardScanner({ onAdd, onBack }: CardScannerProps) {
+export function CardScanner({ onSelect, onBack }: CardScannerProps) {
   const { state } = useAppContext();
   const searchOptions: SearchOptions = {
     sortOrder: state.settings.searchSortOrder,
     setDateFrom: state.settings.setRangeFrom?.releaseDate,
     setDateTo: state.settings.setRangeTo?.releaseDate,
   };
+
   const [phase, setPhase] = useState<Phase>('idle');
-  const [results, setResults] = useState<ScanResult[]>([]);
+  const [scannedCards, setScannedCards] = useState<ScannedRaw[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [textInput, setTextInput] = useState('');
-  const [searchingForId, setSearchingForId] = useState<string | null>(null);
-  const [choosingVersionForId, setChoosingVersionForId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Auto-open version picker when there is exactly one scanned card and it's ambiguous
-  useEffect(() => {
-    if (phase !== 'confirming') return;
-    if (results.length !== 1) return;
-    const r = results[0];
-    if (r.status === 'ambiguous' && r.selected === null && choosingVersionForId === null) {
-      setChoosingVersionForId(r.id);
-    }
-  }, [results, phase, choosingVersionForId]);
+  function reset() {
+    setPhase('idle');
+    setScannedCards([]);
+    setActiveIndex(0);
+    setError(null);
+  }
 
   async function handleFile(file: File) {
     setError(null);
@@ -102,83 +89,15 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
       return;
     }
 
-    // Show loading placeholders immediately
-    const loading: ScanResult[] = scanned.map((raw, i) => ({
-      id: String(i),
-      raw,
-      status: 'loading',
-      candidates: [],
-      selected: null,
-    }));
-    setResults(loading);
-    setPhase('confirming');
+    setScannedCards(scanned);
 
-    // Resolve each card against the TCG API in parallel
-    const resolved = await Promise.all(
-      scanned.map(async (raw, i): Promise<ScanResult> => {
-        try {
-          const candidates = await findCards(raw.name, raw.setCode, raw.number, searchOptions);
-          if (candidates.length === 0) {
-            return { id: String(i), raw, status: 'not_found', candidates: [], selected: null };
-          }
-          if (candidates.length === 1) {
-            return { id: String(i), raw, status: 'resolved', candidates, selected: candidates[0] };
-          }
-          // Multiple results — try to find an exact match if we have set+number
-          if (raw.setCode && raw.number) {
-            const cleanNum = raw.number.replace(/\/.*$/, '').replace(/^0+(\d)/, '$1');
-            const exact = candidates.find(
-              (c) =>
-                c.set.id.toLowerCase() === raw.setCode!.toLowerCase() &&
-                c.number === cleanNum,
-            );
-            if (exact) {
-              return { id: String(i), raw, status: 'resolved', candidates: [exact], selected: exact };
-            }
-          }
-          return { id: String(i), raw, status: 'ambiguous', candidates, selected: null };
-        } catch {
-          return { id: String(i), raw, status: 'not_found', candidates: [], selected: null };
-        }
-      }),
-    );
-
-    setResults(resolved);
+    if (scanned.length === 1) {
+      setActiveIndex(0);
+      setPhase('results');
+    } else {
+      setPhase('hub');
+    }
   }
-
-  function resolveVersion(resultId: string, card: TcgCard) {
-    setResults((prev) =>
-      prev.map((r) =>
-        r.id === resultId
-          ? { ...r, status: 'resolved', candidates: [card], selected: card }
-          : r,
-      ),
-    );
-    setChoosingVersionForId(null);
-  }
-
-  function resolveFromSearch(resultId: string, card: TcgCard) {
-    setResults((prev) =>
-      prev.map((r) =>
-        r.id === resultId
-          ? { ...r, status: 'resolved', candidates: [card], selected: card }
-          : r,
-      ),
-    );
-    setSearchingForId(null);
-  }
-
-  function handleAdd() {
-    const toAdd = results
-      .filter((r) => r.selected != null)
-      .map((r) => ({ card: r.selected!, needed: Math.max(1, r.raw.quantity) }));
-    onAdd(toAdd);
-    setPhase('idle');
-    setResults([]);
-    setTextInput('');
-  }
-
-  const addableCount = results.filter((r) => r.selected != null).length;
 
   /* ── Processing ── */
   if (phase === 'processing') {
@@ -190,107 +109,53 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
     );
   }
 
-  /* ── Confirming — inline search sub-view (not-found manual search) ── */
-  if (phase === 'confirming' && searchingForId !== null) {
-    const target = results.find((r) => r.id === searchingForId);
+  /* ── Hub — multiple cards identified ── */
+  if (phase === 'hub') {
     return (
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-app-border">
           <button
-            onClick={() => setSearchingForId(null)}
+            onClick={reset}
             className="w-8 h-8 flex items-center justify-center rounded-full bg-app-elevated text-zinc-400 active:bg-app-muted touch-manipulation flex-shrink-0"
-            aria-label="Back to results"
+            aria-label="Scan again"
           >
             <BackArrowIcon />
           </button>
-          <p className="text-sm font-semibold text-zinc-100 truncate">
-            Search for &ldquo;{target?.raw.name}&rdquo;
+          <p className="text-sm font-semibold text-zinc-100">
+            {scannedCards.length} cards identified
           </p>
         </div>
-        <InlineSearch
-          initialQuery={target?.raw.name ?? ''}
-          options={searchOptions}
-          onSelect={(card) => resolveFromSearch(searchingForId, card)}
-        />
-      </div>
-    );
-  }
-
-  /* ── Confirming — version picker sub-view (ambiguous candidates) ── */
-  if (phase === 'confirming' && choosingVersionForId !== null) {
-    const target = results.find((r) => r.id === choosingVersionForId);
-    return (
-      <div className="flex flex-col flex-1 min-h-0">
-        <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-app-border">
-          <button
-            onClick={() => setChoosingVersionForId(null)}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-app-elevated text-zinc-400 active:bg-app-muted touch-manipulation flex-shrink-0"
-            aria-label="Back to results"
-          >
-            <BackArrowIcon />
-          </button>
-          <p className="text-sm font-semibold text-zinc-100 truncate">
-            Choose version for &ldquo;{target?.raw.name}&rdquo;
-          </p>
-        </div>
-        <VersionPicker
-          candidates={target?.candidates ?? []}
-          onSelect={(card) => resolveVersion(choosingVersionForId, card)}
-        />
-      </div>
-    );
-  }
-
-  /* ── Confirming — main results view ── */
-  if (phase === 'confirming') {
-    const resolvedCount = results.filter((r) => r.status !== 'loading').length;
-    return (
-      <div className="flex flex-col flex-1 min-h-0">
-        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-app-border">
-          <span className="text-sm font-semibold text-zinc-100">
-            {resolvedCount < results.length ? 'Looking up cards…' : `${results.length} card${results.length !== 1 ? 's' : ''} found`}
-          </span>
-          <button
-            onClick={() => { setPhase('idle'); setResults([]); }}
-            className="text-xs text-zinc-500 touch-manipulation active:text-zinc-300"
-          >
-            Scan again
-          </button>
-        </div>
-
         <div className="flex-1 overflow-y-auto">
-          {results.map((result) => (
-            <ScanResultRow
-              key={result.id}
-              result={result}
-              onSearch={(id) => setSearchingForId(id)}
-              onChooseVersion={(id) => setChoosingVersionForId(id)}
-            />
+          {scannedCards.map((raw, i) => (
+            <button
+              key={i}
+              onClick={() => { setActiveIndex(i); setPhase('results'); }}
+              className="w-full flex items-center justify-between px-4 py-4 border-b border-app-border active:bg-app-elevated touch-manipulation text-left"
+            >
+              <div className="min-w-0">
+                <p className="text-sm text-zinc-100 truncate">{raw.name}</p>
+                {raw.quantity > 1 && (
+                  <p className="text-[11px] text-zinc-500">×{raw.quantity}</p>
+                )}
+              </div>
+              <ChevronRightIcon />
+            </button>
           ))}
         </div>
-
-        <div className="flex-shrink-0 flex gap-3 px-4 py-4 border-t border-app-border">
-          <button
-            onClick={onBack}
-            className="flex-1 py-2.5 text-sm text-zinc-400 border border-app-border active:bg-app-elevated touch-manipulation"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleAdd}
-            disabled={addableCount === 0}
-            className={`flex-1 py-2.5 text-sm font-semibold touch-manipulation ${
-              addableCount > 0
-                ? 'bg-white text-zinc-900 active:bg-zinc-200'
-                : 'bg-zinc-800 text-zinc-600'
-            }`}
-          >
-            {addableCount > 0
-              ? `Add ${addableCount} card${addableCount !== 1 ? 's' : ''}`
-              : 'Add cards'}
-          </button>
-        </div>
       </div>
+    );
+  }
+
+  /* ── Results — search results for the identified card ── */
+  if (phase === 'results') {
+    const raw = scannedCards[activeIndex];
+    return (
+      <ScanResultsSearch
+        initialQuery={raw?.name ?? ''}
+        options={searchOptions}
+        onSelect={onSelect}
+        onBack={scannedCards.length > 1 ? () => setPhase('hub') : onBack}
+      />
     );
   }
 
@@ -361,122 +226,231 @@ export function CardScanner({ onAdd, onBack }: CardScannerProps) {
   );
 }
 
-/* ── Version picker (for ambiguous candidates) ── */
+/* ── Search results view (same look as CardSearch results) ── */
 
-function VersionPicker({
-  candidates,
+function ScanResultsSearch({
+  initialQuery,
+  options,
   onSelect,
+  onBack,
 }: {
-  candidates: TcgCard[];
+  initialQuery: string;
+  options: SearchOptions;
   onSelect: (card: TcgCard) => void;
+  onBack: () => void;
 }) {
+  const [query, setQuery] = useState(initialQuery);
+  const [cards, setCards] = useState<TcgCard[]>([]);
+  const [loading, setLoading] = useState(false);
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
+
+  // Debounced search on query change
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) { setCards([]); return; }
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const results = await searchCards(q, 1, options);
+        setCards(results);
+      } catch {
+        setCards([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  // options is stable per render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  // Kick off immediately with the scanned name
+  useEffect(() => {
+    if (!initialQuery.trim()) return;
+    setLoading(true);
+    searchCards(initialQuery.trim(), 1, options)
+      .then(setCards)
+      .catch(() => setCards([]))
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto">
-        {candidates.map((card) => {
-          const prices = card.cardmarket?.prices;
-          const lowPrice =
-            prices?.lowPriceExPlus != null && prices.lowPriceExPlus > 0
-              ? prices.lowPriceExPlus
-              : prices?.lowPrice;
-          const avg30 = prices?.avg30;
-          const cmHref = card.cardmarket?.url
-            ? `${card.cardmarket.url}?language=1&minCondition=4`
-            : undefined;
-          const priceText = [
-            lowPrice != null ? `€${lowPrice.toFixed(2)}` : null,
-            avg30 != null ? `€${avg30.toFixed(2)}` : null,
-          ]
-            .filter(Boolean)
-            .join('/');
-
-          return (
-            <div
-              key={card.id}
-              className="flex items-center gap-3 px-4 py-3 border-b border-app-border"
-            >
-              <button
-                onClick={() => setPopupCard(card)}
-                className="flex-shrink-0 touch-manipulation"
-                aria-label="View card image"
-              >
-                <Image
-                  src={card.images.small}
-                  alt={card.name}
-                  width={36}
-                  height={50}
-                  className="w-9 h-[50px] rounded object-cover"
-                  unoptimized
-                />
-              </button>
-              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <p className="text-sm font-medium text-zinc-100 truncate">{card.name}</p>
-                <div className="flex items-center gap-1 text-[11px] text-zinc-500 truncate">
-                  {card.set.images?.symbol && (
-                    <Image
-                      src={card.set.images.symbol}
-                      alt=""
-                      width={13}
-                      height={13}
-                      className="w-[13px] h-[13px] object-contain opacity-60 flex-shrink-0"
-                      unoptimized
-                    />
-                  )}
-                  <span className="truncate">
-                    {card.set.name} · {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')}
-                  </span>
-                </div>
-                {priceText && (
-                  cmHref ? (
-                    <a
-                      href={cmHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-[11px] text-zinc-400 underline underline-offset-2 decoration-zinc-600 touch-manipulation"
-                    >
-                      {priceText}
-                    </a>
-                  ) : (
-                    <span className="text-[11px] text-zinc-500">{priceText}</span>
-                  )
-                )}
-              </div>
-              <button
-                onClick={() => onSelect(card)}
-                className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold bg-white text-zinc-900 active:bg-zinc-200 touch-manipulation rounded-sm"
-              >
-                Select
-              </button>
+      <div className="flex flex-col flex-1 min-h-0">
+        {/* Header: back + search input */}
+        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-3 border-b border-app-border">
+          <button
+            onClick={onBack}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-app-elevated text-zinc-400 active:bg-app-muted touch-manipulation flex-shrink-0"
+            aria-label="Back"
+          >
+            <BackArrowIcon />
+          </button>
+          <div className="relative flex-1">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none">
+              <SearchIcon />
             </div>
-          );
-        })}
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Card name…"
+              autoFocus
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              className="w-full pl-9 pr-8 py-2.5 rounded bg-app-elevated border border-app-border text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-zinc-600"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 touch-manipulation"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Results */}
+        <div className="flex-1 overflow-y-auto">
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-6 h-6 border-2 border-zinc-700 border-t-white rounded-full animate-spin" />
+            </div>
+          )}
+          {!loading && query.trim() && cards.length === 0 && (
+            <p className="text-center text-sm text-zinc-500 px-4 py-8">No cards found</p>
+          )}
+          {!loading && !query.trim() && (
+            <p className="text-center text-sm text-zinc-600 px-4 py-8">Type to search cards</p>
+          )}
+          {cards.map((card) => (
+            <ScanSearchResult
+              key={card.id}
+              card={card}
+              onSelect={onSelect}
+              onImageClick={setPopupCard}
+            />
+          ))}
+        </div>
       </div>
 
+      {/* Full-image popup */}
       {popupCard && (
-        <VersionImagePopup
+        <ScanImagePopup
           card={popupCard}
           onClose={() => setPopupCard(null)}
-          onSelect={() => { onSelect(popupCard); setPopupCard(null); }}
+          onAdd={(card) => { onSelect(card); setPopupCard(null); }}
         />
       )}
     </>
   );
 }
 
-/* ── Image popup for version picker ── */
+/* ── Search result row (identical layout to CardSearch's SearchResult) ── */
 
-function VersionImagePopup({
+function ScanSearchResult({
+  card,
+  onSelect,
+  onImageClick,
+}: {
+  card: TcgCard;
+  onSelect: (card: TcgCard) => void;
+  onImageClick: (card: TcgCard) => void;
+}) {
+  const prices = card.cardmarket?.prices;
+  const lowPrice =
+    prices?.lowPriceExPlus != null && prices.lowPriceExPlus > 0
+      ? prices.lowPriceExPlus
+      : prices?.lowPrice;
+  const avg30 = prices?.avg30;
+  const cmHref = card.cardmarket?.url
+    ? `${card.cardmarket.url}?language=1&minCondition=4`
+    : undefined;
+  const priceText = [
+    lowPrice != null ? `€${lowPrice.toFixed(2)}` : null,
+    avg30 != null ? `€${avg30.toFixed(2)}` : null,
+  ]
+    .filter(Boolean)
+    .join('/');
+
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-3 border-b border-app-border active:bg-app-elevated touch-manipulation"
+      onClick={() => onImageClick(card)}
+    >
+      <Image
+        src={card.images.small}
+        alt={card.name}
+        width={36}
+        height={50}
+        className="w-9 h-[50px] rounded object-cover flex-shrink-0"
+        unoptimized
+      />
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        <p className="text-sm font-medium text-zinc-100 truncate">{card.name}</p>
+        <div className="flex items-center gap-1 text-[11px] text-zinc-500 truncate">
+          {card.set.images?.symbol && (
+            <Image
+              src={card.set.images.symbol}
+              alt=""
+              width={13}
+              height={13}
+              className="w-[13px] h-[13px] object-contain opacity-60 flex-shrink-0"
+              unoptimized
+            />
+          )}
+          <span className="truncate">
+            {card.set.name} · {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')}
+          </span>
+        </div>
+        {priceText && (
+          cmHref ? (
+            <a
+              href={cmHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-[11px] text-zinc-400 underline underline-offset-2 decoration-zinc-600 touch-manipulation"
+            >
+              {priceText}
+            </a>
+          ) : (
+            <span className="text-[11px] text-zinc-500">{priceText}</span>
+          )
+        )}
+      </div>
+      <button
+        onClick={(e) => { e.stopPropagation(); onSelect(card); }}
+        className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-white text-zinc-900 text-lg leading-none active:bg-zinc-200 touch-manipulation"
+        aria-label="Add card"
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
+/* ── Image popup (same as CardSearch's SearchImagePopup) ── */
+
+function ScanImagePopup({
   card,
   onClose,
-  onSelect,
+  onAdd,
 }: {
   card: TcgCard;
   onClose: () => void;
-  onSelect: () => void;
+  onAdd: (card: TcgCard) => void;
 }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   const prices = card.cardmarket?.prices;
   const lowPrice =
     prices?.lowPriceExPlus != null && prices.lowPriceExPlus > 0
@@ -548,220 +522,14 @@ function VersionImagePopup({
           )}
         </div>
         <button
-          onClick={onSelect}
+          onClick={() => onAdd(card)}
           className="mt-3 w-full py-2.5 text-sm font-medium bg-white text-zinc-900 active:bg-zinc-200 touch-manipulation"
         >
-          Select version
+          Add card
         </button>
       </div>
     </div>
   );
-}
-
-/* ── Inline search (for not-found cards) ── */
-
-function InlineSearch({
-  initialQuery,
-  options,
-  onSelect,
-}: {
-  initialQuery: string;
-  options: SearchOptions;
-  onSelect: (card: TcgCard) => void;
-}) {
-  const [query, setQuery] = useState(initialQuery);
-  const [cards, setCards] = useState<TcgCard[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) { setCards([]); return; }
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const results = await searchCards(q, 1, options);
-        setCards(results);
-      } catch {
-        setCards([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 350);
-    return () => clearTimeout(timer);
-  // options reference is stable per render — intentionally omitted from deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
-
-  // Kick off a search immediately with the pre-filled name
-  useEffect(() => {
-    if (!initialQuery.trim()) return;
-    setLoading(true);
-    searchCards(initialQuery.trim(), 1, options)
-      .then(setCards)
-      .catch(() => setCards([]))
-      .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <div className="flex-shrink-0 px-4 py-3 border-b border-app-border">
-        <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none">
-            <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
-              <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M9.5 9.5l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </div>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Card name…"
-            autoFocus
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            className="w-full pl-8 pr-3 py-2 rounded bg-app-elevated border border-app-border text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-zinc-600"
-          />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        {loading && (
-          <p className="text-center text-sm text-zinc-600 py-8">Searching…</p>
-        )}
-        {!loading && query.trim() && cards.length === 0 && (
-          <p className="text-center text-sm text-zinc-600 py-8">No results</p>
-        )}
-        {cards.map((card) => (
-          <button
-            key={card.id}
-            onClick={() => onSelect(card)}
-            className="w-full flex items-center gap-3 px-4 py-2.5 border-b border-app-border active:bg-app-elevated text-left touch-manipulation"
-          >
-            <Image
-              src={card.images.small}
-              alt={card.name}
-              width={36}
-              height={50}
-              className="w-9 h-[50px] rounded object-cover flex-shrink-0"
-              unoptimized
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-zinc-100 truncate">{card.name}</p>
-              <p className="text-[11px] text-zinc-500">
-                {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')} · {card.set.name}
-              </p>
-              {(card.cardmarket?.prices?.lowPriceExPlus || card.cardmarket?.prices?.lowPrice) && (
-                <p className="text-[11px] text-zinc-600">
-                  from €{(card.cardmarket.prices.lowPriceExPlus || card.cardmarket.prices.lowPrice)!.toFixed(2)}
-                </p>
-              )}
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ── Per-result row ── */
-
-function ScanResultRow({
-  result,
-  onSearch,
-  onChooseVersion,
-}: {
-  result: ScanResult;
-  onSearch: (id: string) => void;
-  onChooseVersion: (id: string) => void;
-}) {
-  if (result.status === 'loading') {
-    return (
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-app-border animate-pulse">
-        <div className="w-9 h-[50px] rounded bg-zinc-800 flex-shrink-0" />
-        <div className="flex-1 space-y-1.5">
-          <div className="h-3 w-32 bg-zinc-800 rounded" />
-          <div className="h-2.5 w-20 bg-zinc-800 rounded" />
-        </div>
-      </div>
-    );
-  }
-
-  if (result.status === 'not_found') {
-    return (
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-app-border">
-        <div className="w-9 h-[50px] flex items-center justify-center flex-shrink-0 text-zinc-700">
-          <XIcon />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-zinc-500 truncate">{result.raw.name}</p>
-          <p className="text-[11px] text-zinc-600">Not found in TCG database</p>
-        </div>
-        <button
-          onClick={() => onSearch(result.id)}
-          className="flex-shrink-0 px-2.5 py-1 text-xs text-zinc-300 border border-zinc-700 rounded active:bg-app-elevated touch-manipulation"
-        >
-          Search
-        </button>
-      </div>
-    );
-  }
-
-  if (result.status === 'resolved' && result.selected) {
-    const card = result.selected;
-    return (
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-app-border">
-        <Image
-          src={card.images.small}
-          alt={card.name}
-          width={36}
-          height={50}
-          className="w-9 h-[50px] rounded object-cover flex-shrink-0"
-          unoptimized
-        />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-zinc-100 truncate">{card.name}</p>
-          <p className="text-[11px] text-zinc-500">
-            {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')} · {card.set.name}
-          </p>
-        </div>
-        {result.raw.quantity > 1 && (
-          <span className="text-xs font-semibold text-zinc-400 flex-shrink-0">
-            ×{result.raw.quantity}
-          </span>
-        )}
-        <CheckIcon />
-      </div>
-    );
-  }
-
-  if (result.status === 'ambiguous') {
-    return (
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-app-border">
-        <div className="w-9 h-[50px] flex items-center justify-center flex-shrink-0 text-zinc-600">
-          <LayersIcon />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-zinc-100 truncate">{result.raw.name}</p>
-          <p className="text-[11px] text-zinc-500">{result.candidates.length} versions found</p>
-        </div>
-        {result.raw.quantity > 1 && (
-          <span className="text-xs text-zinc-500 flex-shrink-0">×{result.raw.quantity}</span>
-        )}
-        <button
-          onClick={() => onChooseVersion(result.id)}
-          className="flex-shrink-0 px-2.5 py-1 text-xs text-zinc-300 border border-zinc-700 rounded active:bg-app-elevated touch-manipulation"
-        >
-          Choose Version
-        </button>
-      </div>
-    );
-  }
-
-  return null;
 }
 
 /* ── Helpers ── */
@@ -816,29 +584,19 @@ function BackArrowIcon() {
   );
 }
 
-function CheckIcon() {
+function SearchIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-green-400 flex-shrink-0">
-      <path d="M3 8l4 4 6-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+      <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M9.5 9.5l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
 
-function XIcon() {
+function ChevronRightIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M7 7l6 6M13 7l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function LayersIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-zinc-600 flex-shrink-0">
+      <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -231,7 +231,7 @@ function SearchImagePopup({
         </div>
         <button
           onClick={() => onAdd(card)}
-          className="mt-3 w-full py-2.5 text-sm font-medium text-zinc-300 border border-zinc-700 bg-zinc-800/60 active:bg-zinc-700 touch-manipulation"
+          className="mt-3 w-full py-2.5 text-sm font-medium bg-white text-zinc-900 active:bg-zinc-200 touch-manipulation"
         >
           Add card
         </button>

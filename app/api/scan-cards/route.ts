@@ -47,49 +47,79 @@ export async function POST(req: NextRequest) {
       text: body.text ? `${PROMPT}\n\nCard list to parse:\n${body.text}` : PROMPT,
     });
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
-        max_tokens: 2048,
-        messages: [{ role: 'user', content: contentParts }],
-      }),
-    });
+    // Try models in order from newest to oldest — older keys may not have access to newer models
+    const MODELS = [
+      'claude-3-5-haiku-20241022',
+      'claude-3-haiku-20240307',
+    ];
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(`Claude API error ${res.status}:`, errText);
+    let res: Response | null = null;
+    let lastErrText = '';
 
-      if (res.status === 401) {
+    for (const model of MODELS) {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 2048,
+          messages: [{ role: 'user', content: contentParts }],
+        }),
+      });
+
+      if (res.ok) break;
+
+      lastErrText = await res.text();
+      console.error(`Claude API error with model ${model} — status ${res.status}:`, lastErrText);
+
+      // Only retry on 404 (model not found/accessible); anything else is a hard error
+      if (res.status !== 404) break;
+    }
+
+    if (!res!.ok) {
+      const status = res!.status;
+
+      if (status === 401) {
         return NextResponse.json(
           { error: 'Invalid Anthropic API key. Check ANTHROPIC_API_KEY in your environment.' },
           { status: 500 },
         );
       }
-      if (res.status === 429) {
+      if (status === 403) {
+        return NextResponse.json(
+          { error: 'API key lacks permission. You may need to add billing at console.anthropic.com.' },
+          { status: 500 },
+        );
+      }
+      if (status === 404) {
+        return NextResponse.json(
+          { error: 'No accessible Claude model found for this API key. Try adding billing at console.anthropic.com.' },
+          { status: 500 },
+        );
+      }
+      if (status === 429) {
         return NextResponse.json(
           { error: 'Claude API rate limit hit. Please wait a moment and try again.' },
           { status: 500 },
         );
       }
-      if (res.status === 529 || res.status === 503) {
+      if (status === 529 || status === 503) {
         return NextResponse.json(
           { error: 'Claude API is temporarily overloaded. Please try again in a moment.' },
           { status: 500 },
         );
       }
       return NextResponse.json(
-        { error: `Failed to analyze content (Claude API returned ${res.status}).` },
+        { error: `Failed to analyze content (Claude API ${status}): ${lastErrText.slice(0, 120)}` },
         { status: 500 },
       );
     }
 
-    const data = await res.json() as { content: { text: string }[] };
+    const data = await res!.json() as { content: { text: string }[] };
     const raw = data.content[0].text.trim();
 
     let cards;

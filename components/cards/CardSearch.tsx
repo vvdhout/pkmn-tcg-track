@@ -3,6 +3,8 @@
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { usePokemonSearch } from '@/hooks/usePokemonSearch';
+import { getFormat } from '@/services/formats';
+import { FormatPicker } from '@/components/formats/FormatPicker';
 import type { TcgCard } from '@/types';
 import { CardScanner } from './CardScanner';
 
@@ -11,13 +13,23 @@ interface CardSearchProps {
   onSelectMultiple?: (cards: { card: TcgCard; needed: number }[]) => void;
   excludeIds?: string[];
   formatIds?: string[];
+  onChangeFormatIds?: (ids: string[]) => void;
 }
 
-export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], formatIds }: CardSearchProps) {
+export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], formatIds, onChangeFormatIds }: CardSearchProps) {
   const { query, setQuery, results, loading, error, clear } = usePokemonSearch(formatIds ? { formatIds } : undefined);
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
   const [mode, setMode] = useState<'search' | 'scan'>('search');
+  const [showFormatPicker, setShowFormatPicker] = useState(false);
   const filtered = results.filter((c) => !excludeIds.includes(c.id));
+
+  const hasFormatRow = onChangeFormatIds !== undefined || (!!formatIds && formatIds.length > 0);
+  const formatLabel =
+    formatIds && formatIds.length > 0
+      ? formatIds.length === 1
+        ? (getFormat(formatIds[0])?.name ?? formatIds[0])
+        : `${formatIds.length} formats`
+      : 'All sets';
 
   if (mode === 'scan') {
     return (
@@ -72,6 +84,36 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
         </button>
       </div>
 
+      {/* Format indicator row */}
+      {hasFormatRow && (
+        <div className="flex-shrink-0 px-4 py-2 flex items-center gap-2 border-b border-app-border">
+          {onChangeFormatIds ? (
+            <>
+              <button
+                onClick={() => setShowFormatPicker(true)}
+                className="flex items-center gap-1 touch-manipulation"
+              >
+                <span className={`text-[11px] ${formatIds && formatIds.length > 0 ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                  {formatLabel}
+                </span>
+                <ChevronDownIcon />
+              </button>
+              {formatIds && formatIds.length > 0 && (
+                <button
+                  onClick={() => onChangeFormatIds([])}
+                  className="text-zinc-600 active:text-zinc-400 touch-manipulation leading-none text-base"
+                  aria-label="Clear format filter"
+                >
+                  ×
+                </button>
+              )}
+            </>
+          ) : (
+            <span className="text-[11px] text-zinc-500">{formatLabel}</span>
+          )}
+        </div>
+      )}
+
       {/* Results */}
       <div className="flex-1 overflow-y-auto">
         {loading && (
@@ -103,7 +145,24 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
         onClose={() => setPopupCard(null)}
         onAdd={(card) => { onSelect(card); setPopupCard(null); }}
       />
+
+      {showFormatPicker && onChangeFormatIds && (
+        <FormatPicker
+          multiSelect
+          selectedFormatIds={formatIds ?? []}
+          onApply={(ids) => { onChangeFormatIds(ids); setShowFormatPicker(false); }}
+          onClose={() => setShowFormatPicker(false)}
+        />
+      )}
     </div>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-zinc-600 flex-shrink-0">
+      <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

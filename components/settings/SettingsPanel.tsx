@@ -35,7 +35,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
             >
               <BackIcon />
             </button>
-            <h2 className="flex-1 text-sm font-semibold text-zinc-100">Popular Formats</h2>
+            <h2 className="flex-1 text-sm font-semibold text-zinc-100">Favorite Formats</h2>
           </div>
           <p className="px-4 py-3 text-[11px] text-zinc-500 border-b border-app-border">
             Checked formats appear at the top of format pickers.
@@ -136,7 +136,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               onClick={() => setView('pick-favorites')}
               className="ml-4 text-xs text-zinc-500 active:text-zinc-300 touch-manipulation flex-shrink-0"
             >
-              Edit popular
+              Edit favorites
             </button>
           </div>
         </div>

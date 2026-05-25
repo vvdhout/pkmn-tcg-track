@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { CardListView } from '@/components/cards/CardListView';
 import { CardSearch } from '@/components/cards/CardSearch';
@@ -12,6 +12,17 @@ export default function AllCardsPage() {
   const { state, dispatch } = useAppContext();
   const [showSearch, setShowSearch] = useState(false);
   const [filterQuery, setFilterQuery] = useState('');
+  const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
+  const initDoneRef = useRef(false);
+
+  // Initialize format filter from defaultDeckFormat once state loads
+  useEffect(() => {
+    if (!initDoneRef.current && state.settings.defaultDeckFormat) {
+      initDoneRef.current = true;
+      setSelectedFormats([state.settings.defaultDeckFormat]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.settings.defaultDeckFormat]);
 
   // Flat list: each (deckId|null, card) pair — preserves per-deck independence
   const allEntries = useMemo(() => {
@@ -164,7 +175,13 @@ export default function AllCardsPage() {
         title="Add Standalone Card"
         fullScreen
       >
-        <CardSearch onSelect={handleSelectCard} onSelectMultiple={handleSelectMultiple} excludeIds={existingIds} />
+        <CardSearch
+          onSelect={handleSelectCard}
+          onSelectMultiple={handleSelectMultiple}
+          excludeIds={existingIds}
+          formatIds={selectedFormats.length > 0 ? selectedFormats : undefined}
+          onChangeFormatIds={setSelectedFormats}
+        />
       </Modal>
     </div>
   );

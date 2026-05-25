@@ -72,25 +72,24 @@ export default function SearchPage() {
         </button>
       </div>
 
-      {/* Format filter row */}
-      <div className="flex-shrink-0 px-4 pb-2 flex items-center gap-2">
+      {/* Format filter — minimal */}
+      <div className="flex-shrink-0 px-4 pb-3 flex items-center gap-2">
         <button
           onClick={() => setShowFormatPicker(true)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs touch-manipulation ${
-            selectedFormats.length > 0
-              ? 'bg-white text-zinc-900 border-white'
-              : 'bg-app-elevated border-app-border text-zinc-400 active:bg-app-muted'
-          }`}
+          className="flex items-center gap-1 touch-manipulation"
         >
-          <FilterIcon active={selectedFormats.length > 0} />
-          {formatLabel}
+          <span className={`text-[11px] ${selectedFormats.length > 0 ? 'text-zinc-400' : 'text-zinc-600'}`}>
+            {formatLabel}
+          </span>
+          <ChevronDownIcon />
         </button>
         {selectedFormats.length > 0 && (
           <button
             onClick={() => setSelectedFormats([])}
-            className="text-xs text-zinc-600 active:text-zinc-400 touch-manipulation"
+            className="text-zinc-600 active:text-zinc-400 touch-manipulation leading-none text-base"
+            aria-label="Clear format filter"
           >
-            Clear
+            ×
           </button>
         )}
       </div>
@@ -181,15 +180,10 @@ function GearIcon() {
   );
 }
 
-function FilterIcon({ active }: { active: boolean }) {
+function ChevronDownIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={active ? 'text-zinc-900' : 'text-zinc-500'}>
-      <path
-        d="M1 2h10M3 6h6M5 10h2"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-zinc-600 flex-shrink-0">
+      <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

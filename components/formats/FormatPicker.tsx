@@ -96,7 +96,7 @@ export function FormatPicker(props: FormatPickerProps) {
 
           {favorites.length > 0 && (
             <>
-              <SectionHeader label="Popular" />
+              <SectionHeader label="Favorites" />
               {favorites.map((f) => (
                 <FormatRow
                   key={f.id}

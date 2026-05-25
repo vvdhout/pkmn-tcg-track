@@ -1,4 +1,5 @@
 import type { TcgCard, TcgSet } from '@/types';
+import { getFormat } from '@/services/formats';
 
 const BASE_URL = 'https://api.pokemontcg.io/v2';
 const SELECTED_FIELDS = 'id,name,supertype,subtypes,types,number,set,images,cardmarket';
@@ -10,8 +11,7 @@ function headers(): HeadersInit {
 
 export interface SearchOptions {
   sortOrder?: 'asc' | 'desc'; // 'asc' = oldest first (default)
-  setDateFrom?: string;        // YYYY/MM/DD — include sets released on or after this date
-  setDateTo?: string;          // YYYY/MM/DD — include sets released on or before this date
+  formatIds?: string[];        // format IDs to filter by; undefined/empty = no filter
 }
 
 function buildOrderBy(options?: SearchOptions): string {
@@ -36,36 +36,40 @@ export async function fetchSets(): Promise<TcgSet[]> {
 }
 
 /**
- * Resolves a date range to a Lucene set-id filter string.
- * Returns null  → no filter (apply none)
- * Returns 'NONE' → range contains zero sets (search should return [])
- * Returns string  → e.g. "(set.id:sv1 OR set.id:sv2 OR ...)"
- *
- * Using set IDs is reliable; the TCG API's Lucene parser doesn't always
- * handle date-comparison operators (>=, <=) on set.releaseDate correctly.
+ * Resolves an array of format IDs to a Lucene set-id filter string.
+ * Returns null   → no filter (show all sets)
+ * Returns 'NONE' → no sets match (search should return [])
+ * Returns string → e.g. "(set.id:sv5 OR set.id:sv6 OR ...)"
  */
-async function resolveSetFilter(dateFrom?: string, dateTo?: string): Promise<string | null> {
-  if (!dateFrom && !dateTo) return null;
+async function resolveFormatFilter(formatIds?: string[]): Promise<string | null> {
+  if (!formatIds || formatIds.length === 0) return null;
 
-  // Normalise order if user configured them backwards
-  let from = dateFrom;
-  let to = dateTo;
-  if (from && to && from > to) [from, to] = [to, from];
+  // If any selected format is unlimited (no date bounds), the union is all sets → no filter
+  if (formatIds.some((id) => {
+    const f = getFormat(id);
+    return !f || (!f.fromDate && !f.toDate);
+  })) return null;
 
   try {
     const sets = await fetchSets();
-    const ids = sets
-      .filter(
-        (s) =>
-          (!from || s.releaseDate >= from) &&
-          (!to   || s.releaseDate <= to),
-      )
-      .map((s) => s.id);
+    const matchingIds = new Set<string>();
 
-    if (ids.length === 0) return 'NONE';
-    return `(${ids.map((id) => `set.id:${id}`).join(' OR ')})`;
+    for (const formatId of formatIds) {
+      const format = getFormat(formatId);
+      if (!format) continue;
+      for (const set of sets) {
+        if (
+          (!format.fromDate || set.releaseDate >= format.fromDate) &&
+          (!format.toDate   || set.releaseDate <= format.toDate)
+        ) {
+          matchingIds.add(set.id);
+        }
+      }
+    }
+
+    if (matchingIds.size === 0) return 'NONE';
+    return `(${[...matchingIds].map((id) => `set.id:${id}`).join(' OR ')})`;
   } catch {
-    // If the set-list fetch fails, silently skip the filter
     return null;
   }
 }
@@ -80,7 +84,7 @@ function buildNameQuery(query: string): string {
 export async function searchCards(query: string, page = 1, options?: SearchOptions): Promise<TcgCard[]> {
   if (!query.trim()) return [];
 
-  const setFilter = await resolveSetFilter(options?.setDateFrom, options?.setDateTo);
+  const setFilter = await resolveFormatFilter(options?.formatIds);
   if (setFilter === 'NONE') return [];
 
   const parts = [buildNameQuery(query)];
@@ -115,7 +119,7 @@ export async function findCards(
   const cleanNumber = number?.replace(/\/.*$/, '').replace(/^0+(\d)/, '$1') ?? null;
   const orderBy = buildOrderBy(options);
 
-  const setFilter = await resolveSetFilter(options?.setDateFrom, options?.setDateTo);
+  const setFilter = await resolveFormatFilter(options?.formatIds);
   if (setFilter === 'NONE') return [];
 
   async function query(namePart: string, useSet: boolean, useNumber: boolean): Promise<TcgCard[]> {

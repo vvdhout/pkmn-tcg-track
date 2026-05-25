@@ -5,7 +5,7 @@ const KEY = 'pkmn-tcg-track-v1';
 const DEFAULT: AppState = {
   decks: [],
   standaloneCards: [],
-  settings: { searchSortOrder: 'asc', setRangeFrom: null, setRangeTo: null, defaultCardFilter: 'all', defaultDeckFormat: null, favoriteFormats: ['standard', 'expanded'] },
+  settings: { searchSortOrder: 'asc', defaultCardFilter: 'all', defaultDeckFormat: null, favoriteFormats: ['standard', 'expanded'] },
 };
 
 export function loadState(): AppState {

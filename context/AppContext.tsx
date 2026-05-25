@@ -15,8 +15,6 @@ import { refreshCardPrices } from '@/services/pokemonTcg';
 
 const DEFAULT_SETTINGS: AppSettings = {
   searchSortOrder: 'asc',
-  setRangeFrom: null,
-  setRangeTo: null,
   defaultCardFilter: 'all',
   defaultDeckFormat: null,
   favoriteFormats: ['standard', 'expanded'],

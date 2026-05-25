@@ -18,8 +18,12 @@ export interface TcgCard {
     large: string;
   };
   cardmarket?: {
+    url?: string;
     prices?: {
       averageSellPrice?: number;
+      lowPrice?: number;
+      lowPriceExPlus?: number;
+      trendPrice?: number;
       avg1?: number;
       avg7?: number;
       avg30?: number;
@@ -36,7 +40,9 @@ export interface TrackedCard {
   setName: string;
   imageSmall: string;
   imageLarge: string;
-  cardmarketPrice?: number;
+  cardmarketUrl?: string;
+  cardmarketLowPrice?: number;
+  cardmarketAvg30?: number;
   collected: number;
   needed: number;
 }

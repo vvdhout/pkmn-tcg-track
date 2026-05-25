@@ -32,6 +32,13 @@ export async function getCard(id: string): Promise<TcgCard> {
 }
 
 export function mapToTracked(card: TcgCard, needed = 1) {
+  const prices = card.cardmarket?.prices;
+  // Prefer ExPlus (Excellent+ condition) as the "from" price; fall back to lowPrice if absent/zero
+  const lowPriceExPlus = prices?.lowPriceExPlus;
+  const lowPrice = prices?.lowPrice;
+  const cardmarketLowPrice =
+    lowPriceExPlus != null && lowPriceExPlus > 0 ? lowPriceExPlus : lowPrice;
+
   return {
     tcgId: card.id,
     name: card.name,
@@ -41,7 +48,9 @@ export function mapToTracked(card: TcgCard, needed = 1) {
     setName: card.set.name,
     imageSmall: card.images.small,
     imageLarge: card.images.large,
-    cardmarketPrice: card.cardmarket?.prices?.averageSellPrice,
+    cardmarketUrl: card.cardmarket?.url,
+    cardmarketLowPrice,
+    cardmarketAvg30: prices?.avg30,
     collected: 0,
     needed,
   };

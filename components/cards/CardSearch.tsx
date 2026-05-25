@@ -66,7 +66,12 @@ export function CardSearch({ onSelect, excludeIds = [] }: CardSearchProps) {
 }
 
 function SearchResult({ card, onSelect }: { card: TcgCard; onSelect: (c: TcgCard) => void }) {
-  const price = card.cardmarket?.prices?.averageSellPrice;
+  const prices = card.cardmarket?.prices;
+  const lowPrice =
+    prices?.lowPriceExPlus != null && prices.lowPriceExPlus > 0
+      ? prices.lowPriceExPlus
+      : prices?.lowPrice;
+  const avg30 = prices?.avg30;
 
   return (
     <button
@@ -86,8 +91,12 @@ function SearchResult({ card, onSelect }: { card: TcgCard; onSelect: (c: TcgCard
         <p className="text-[11px] text-zinc-500 truncate">
           {card.set.name} · {card.set.id.toUpperCase()}-{card.number.padStart(3, '0')}
         </p>
-        {price != null && (
-          <p className="text-[11px] text-zinc-500">€{price.toFixed(2)}</p>
+        {(lowPrice != null || avg30 != null) && (
+          <p className="text-[11px] text-zinc-500">
+            {lowPrice != null && `from €${lowPrice.toFixed(2)}`}
+            {lowPrice != null && avg30 != null && ' · '}
+            {avg30 != null && `avg30 €${avg30.toFixed(2)}`}
+          </p>
         )}
       </div>
       <span className="text-[10px] text-zinc-600 font-medium uppercase flex-shrink-0">

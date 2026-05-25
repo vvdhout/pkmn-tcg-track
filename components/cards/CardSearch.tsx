@@ -143,9 +143,10 @@ function SearchResult({
       </div>
       <button
         onClick={(e) => { e.stopPropagation(); onSelect(card); }}
-        className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold bg-white text-zinc-900 active:bg-zinc-200 touch-manipulation"
+        className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-white text-zinc-900 text-lg leading-none active:bg-zinc-200 touch-manipulation"
+        aria-label="Add card"
       >
-        Add
+        +
       </button>
     </div>
   );

@@ -54,8 +54,8 @@ export default function SearchPage() {
   const formatLabel =
     selectedFormats.length === 0
       ? 'All sets'
-      : selectedFormats.length === 1
-      ? (getFormat(selectedFormats[0])?.name ?? selectedFormats[0])
+      : selectedFormats.length < 4
+      ? selectedFormats.map((id) => getFormat(id)?.name ?? id).join(' · ')
       : `${selectedFormats.length} formats`;
 
   return (

@@ -26,8 +26,8 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
   const hasFormatRow = onChangeFormatIds !== undefined || (!!formatIds && formatIds.length > 0);
   const formatLabel =
     formatIds && formatIds.length > 0
-      ? formatIds.length === 1
-        ? (getFormat(formatIds[0])?.name ?? formatIds[0])
+      ? formatIds.length < 4
+        ? formatIds.map((id) => getFormat(id)?.name ?? id).join(' · ')
         : `${formatIds.length} formats`
       : 'All sets';
 

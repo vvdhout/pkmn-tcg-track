@@ -18,7 +18,8 @@ Return ONLY the JSON array, nothing else.`;
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: 'Scanning not configured on this server.' }, { status: 503 });
+    console.error('ANTHROPIC_API_KEY is not set. Add it to .env.local or Vercel environment variables.');
+    return NextResponse.json({ error: 'Scanner not set up: ANTHROPIC_API_KEY is missing on the server.' }, { status: 503 });
   }
 
   try {
@@ -61,8 +62,31 @@ export async function POST(req: NextRequest) {
     });
 
     if (!res.ok) {
-      console.error('Claude API error:', await res.text());
-      return NextResponse.json({ error: 'Failed to analyze content.' }, { status: 500 });
+      const errText = await res.text();
+      console.error(`Claude API error ${res.status}:`, errText);
+
+      if (res.status === 401) {
+        return NextResponse.json(
+          { error: 'Invalid Anthropic API key. Check ANTHROPIC_API_KEY in your environment.' },
+          { status: 500 },
+        );
+      }
+      if (res.status === 429) {
+        return NextResponse.json(
+          { error: 'Claude API rate limit hit. Please wait a moment and try again.' },
+          { status: 500 },
+        );
+      }
+      if (res.status === 529 || res.status === 503) {
+        return NextResponse.json(
+          { error: 'Claude API is temporarily overloaded. Please try again in a moment.' },
+          { status: 500 },
+        );
+      }
+      return NextResponse.json(
+        { error: `Failed to analyze content (Claude API returned ${res.status}).` },
+        { status: 500 },
+      );
     }
 
     const data = await res.json() as { content: { text: string }[] };

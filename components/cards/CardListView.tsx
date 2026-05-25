@@ -119,7 +119,6 @@ export function CardListView({
                   onImageClick={setPopupCard}
                   onDecrement={() => onSetCollected(card.tcgId, card.collected - 1)}
                   onIncrement={() => onSetCollected(card.tcgId, card.collected + 1)}
-                  onEdit={() => setEditCard(card)}
                 />
               ))}
             </div>
@@ -128,7 +127,11 @@ export function CardListView({
         {footer && <div className="pt-2">{footer}</div>}
       </div>
 
-      <ImagePopup card={popupCard} onClose={() => setPopupCard(null)} />
+      <ImagePopup
+        card={popupCard}
+        onClose={() => setPopupCard(null)}
+        onEdit={() => { setEditCard(popupCard); setPopupCard(null); }}
+      />
 
       <EditQuantityModal
         card={editCard}

@@ -10,7 +10,6 @@ interface CardListItemProps {
   onImageClick: (card: TrackedCard) => void;
   onDecrement: () => void;
   onIncrement: () => void;
-  onEdit: () => void;
 }
 
 export function CardListItem({
@@ -20,7 +19,6 @@ export function CardListItem({
   onImageClick,
   onDecrement,
   onIncrement,
-  onEdit,
 }: CardListItemProps) {
   const isComplete = card.collected >= card.needed;
 
@@ -81,23 +79,14 @@ export function CardListItem({
         )}
       </div>
 
-      {/* Counter */}
-      <div className="flex items-center gap-1 flex-shrink-0">
-        <CountButton onClick={onDecrement} aria="Decrease">−</CountButton>
-        <span className={`w-10 text-center text-sm font-semibold tabular-nums ${isComplete ? 'text-green-400' : 'text-zinc-200'}`}>
-          {card.collected}&nbsp;/&nbsp;{card.needed}
-        </span>
+      {/* Counter — vertically stacked */}
+      <div className="flex flex-col items-center flex-shrink-0 gap-0.5">
         <CountButton onClick={onIncrement} aria="Increase">+</CountButton>
+        <span className={`text-[11px] font-semibold tabular-nums text-center leading-none py-0.5 ${isComplete ? 'text-green-400' : 'text-zinc-200'}`}>
+          {card.collected}/{card.needed}
+        </span>
+        <CountButton onClick={onDecrement} aria="Decrease">−</CountButton>
       </div>
-
-      {/* Edit */}
-      <button
-        onClick={onEdit}
-        className="flex-shrink-0 w-7 h-7 flex items-center justify-center bg-zinc-800 text-zinc-400 active:bg-zinc-700 touch-manipulation"
-        aria-label="Edit card"
-      >
-        <EditIcon />
-      </button>
     </div>
   );
 }
@@ -127,7 +116,7 @@ function CountButton({ onClick, aria, children }: { onClick: () => void; aria: s
     <button
       onClick={onClick}
       aria-label={aria}
-      className="w-7 h-7 flex items-center justify-center bg-zinc-800 text-zinc-300 text-lg leading-none active:bg-zinc-700 touch-manipulation select-none"
+      className="w-7 h-6 flex items-center justify-center bg-zinc-800 text-zinc-300 text-base leading-none active:bg-zinc-700 touch-manipulation select-none"
     >
       {children}
     </button>
@@ -138,20 +127,6 @@ function StarIcon() {
   return (
     <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor">
       <path d="M4.5 0l1.09 2.21 2.44.36-1.77 1.72.42 2.43L4.5 5.59 2.32 6.72l.42-2.43L1 2.57l2.44-.36z" />
-    </svg>
-  );
-}
-
-function EditIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-      <path
-        d="M9 2l2 2-7 7H2V9l7-7z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
     </svg>
   );
 }

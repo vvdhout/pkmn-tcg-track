@@ -7,6 +7,7 @@ import type { TrackedCard } from '@/types';
 interface ImagePopupProps {
   card: TrackedCard | null;
   onClose: () => void;
+  onEdit?: () => void;
 }
 
 function PriceLink({ href, low, avg30 }: { href?: string; low?: number; avg30?: number }) {
@@ -23,7 +24,7 @@ function PriceLink({ href, low, avg30 }: { href?: string; low?: number; avg30?: 
   return <span className="text-xs text-zinc-500 mt-1 inline-block">{parts}</span>;
 }
 
-export function ImagePopup({ card, onClose }: ImagePopupProps) {
+export function ImagePopup({ card, onClose, onEdit }: ImagePopupProps) {
   useEffect(() => {
     if (!card) return;
     const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -70,6 +71,14 @@ export function ImagePopup({ card, onClose }: ImagePopupProps) {
             />
           )}
         </div>
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className="mt-3 w-full py-2.5 text-sm font-medium text-zinc-300 border border-zinc-700 bg-zinc-800/60 active:bg-zinc-700 touch-manipulation"
+          >
+            Edit quantity
+          </button>
+        )}
       </div>
     </div>
   );

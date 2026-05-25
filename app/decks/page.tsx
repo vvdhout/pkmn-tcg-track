@@ -10,7 +10,7 @@ export default function DecksPage() {
   const [showCreate, setShowCreate] = useState(false);
 
   return (
-    <>
+    <div className="h-full overflow-y-auto">
       <div className="flex items-center justify-between px-4 pt-5 pb-4">
         <h1 className="text-lg font-bold text-zinc-100">My Decks</h1>
         <button
@@ -42,6 +42,6 @@ export default function DecksPage() {
         onClose={() => setShowCreate(false)}
         onCreate={createDeck}
       />
-    </>
+    </div>
   );
 }

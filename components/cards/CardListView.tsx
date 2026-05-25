@@ -86,15 +86,19 @@ export function CardListView({
     : [{ label: '', cards: sorted }];
 
   return (
-    <>
-      <StatsBar cards={cards} />
-      <FilterTabs
-        active={filter}
-        onChange={setFilter}
-        onReset={() => { onReset(); setFilter('all'); }}
-      />
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Locked top section */}
+      <div className="flex-shrink-0">
+        <StatsBar cards={cards} />
+        <FilterTabs
+          active={filter}
+          onChange={setFilter}
+          onReset={() => { onReset(); setFilter('all'); }}
+        />
+      </div>
 
-      <div className="px-3 space-y-4">
+      {/* Scrollable card list */}
+      <div className="flex-1 overflow-y-auto px-3 pb-20 space-y-4 pt-1">
         {cards.length === 0 && (
           <p className="text-center text-sm text-zinc-600 py-12">No cards yet</p>
         )}
@@ -122,7 +126,6 @@ export function CardListView({
           </div>
         ))}
         {footer && <div className="pt-2">{footer}</div>}
-        <div className="pb-16" />
       </div>
 
       <ImagePopup card={popupCard} onClose={() => setPopupCard(null)} />
@@ -138,6 +141,6 @@ export function CardListView({
           setEditCard(null);
         }}
       />
-    </>
+    </div>
   );
 }

@@ -38,9 +38,9 @@ export default function DeckDetailPage({ params }: Props) {
   const existingIds = deck.cards.map((c) => c.tcgId);
 
   return (
-    <>
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 px-3 pt-5 pb-2">
+      <div className="flex-shrink-0 flex items-center gap-3 px-3 pt-5 pb-2">
         <button
           onClick={() => router.back()}
           className="w-8 h-8 flex items-center justify-center rounded-full bg-app-elevated text-zinc-400 active:bg-app-muted touch-manipulation"
@@ -83,7 +83,7 @@ export default function DeckDetailPage({ params }: Props) {
       >
         <CardSearch onSelect={handleSelectCard} excludeIds={existingIds} />
       </Modal>
-    </>
+    </div>
   );
 }
 

@@ -84,8 +84,8 @@ export default function AllCardsPage() {
   const existingIds = flatCards.map((c) => c.tcgId);
 
   return (
-    <>
-      <div className="flex items-center justify-between px-4 pt-5 pb-2">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-5 pb-2">
         <h1 className="text-lg font-bold text-zinc-100">All Cards</h1>
         <button
           onClick={() => setShowSearch(true)}
@@ -115,6 +115,6 @@ export default function AllCardsPage() {
       >
         <CardSearch onSelect={handleSelectCard} excludeIds={existingIds} />
       </Modal>
-    </>
+    </div>
   );
 }

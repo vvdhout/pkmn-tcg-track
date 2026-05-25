@@ -29,7 +29,7 @@ export function EditQuantityModal({ card, onClose, onSetNeeded, onRemove }: Edit
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center bg-zinc-800 text-zinc-400 active:bg-zinc-700"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 active:bg-zinc-700"
           >
             ✕
           </button>

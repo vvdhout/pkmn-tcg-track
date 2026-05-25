@@ -46,7 +46,7 @@ export async function findCards(
     const url = new URL(`${BASE_URL}/cards`);
     url.searchParams.set('q', parts.join(' '));
     url.searchParams.set('pageSize', '20');
-    url.searchParams.set('orderBy', '-set.releaseDate');
+    url.searchParams.set('orderBy', 'set.releaseDate');
     url.searchParams.set('select', SELECTED_FIELDS);
     const res = await fetch(url.toString(), { headers: headers() });
     if (!res.ok) return [];

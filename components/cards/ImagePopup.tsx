@@ -10,18 +10,13 @@ interface ImagePopupProps {
   onEdit?: () => void;
 }
 
-function cardmarketHref(base?: string) {
-  if (!base) return undefined;
-  return `${base}?language=1&minCondition=4`;
-}
-
 function PriceLink({ href, low, avg30 }: { href?: string; low?: number; avg30?: number }) {
   const parts = [low != null ? `€${low.toFixed(2)}` : null, avg30 != null ? `€${avg30.toFixed(2)}` : null]
     .filter(Boolean)
     .join('/');
   if (href) {
     return (
-      <a href={cardmarketHref(href)} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 underline underline-offset-2 decoration-zinc-600 mt-1 inline-block">
+      <a href={href} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 underline underline-offset-2 decoration-zinc-600 mt-1 inline-block">
         {parts}
       </a>
     );
@@ -70,7 +65,9 @@ export function ImagePopup({ card, onClose, onEdit }: ImagePopupProps) {
           </p>
           {(card.cardmarketLowPrice != null || card.cardmarketAvg30 != null) && (
             <PriceLink
-              href={card.cardmarketUrl}
+              href={card.cardmarketUrl
+                ? `https://www.cardmarket.com/en/Pokemon/Products/Singles?searchString=${encodeURIComponent(card.name)}&language=1&minCondition=4`
+                : undefined}
               low={card.cardmarketLowPrice}
               avg30={card.cardmarketAvg30}
             />

@@ -21,6 +21,9 @@ export function CardListItem({
   onIncrement,
 }: CardListItemProps) {
   const isComplete = card.collected >= card.needed;
+  const cmHref = card.cardmarketUrl
+    ? `https://www.cardmarket.com/en/Pokemon/Products/Singles?searchString=${encodeURIComponent(card.name)}&language=1&minCondition=4`
+    : undefined;
 
   return (
     <div
@@ -60,7 +63,7 @@ export function CardListItem({
           </span>
           {(card.cardmarketLowPrice != null || card.cardmarketAvg30 != null) && (
             <PriceChip
-              href={card.cardmarketUrl}
+              href={cmHref}
               low={card.cardmarketLowPrice}
               avg30={card.cardmarketAvg30}
             />
@@ -91,11 +94,6 @@ export function CardListItem({
   );
 }
 
-function cardmarketHref(base?: string) {
-  if (!base) return undefined;
-  return `${base}?language=1&minCondition=4`;
-}
-
 function PriceChip({ href, low, avg30 }: { href?: string; low?: number; avg30?: number }) {
   const parts = [low != null ? `€${low.toFixed(2)}` : null, avg30 != null ? `€${avg30.toFixed(2)}` : null]
     .filter(Boolean)
@@ -103,7 +101,7 @@ function PriceChip({ href, low, avg30 }: { href?: string; low?: number; avg30?: 
   if (href) {
     return (
       <a
-        href={cardmarketHref(href)}
+        href={href}
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => e.stopPropagation()}

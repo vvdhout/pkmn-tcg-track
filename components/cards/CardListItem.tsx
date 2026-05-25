@@ -13,12 +13,6 @@ interface CardListItemProps {
   onEdit: () => void;
 }
 
-const SUPERTYPE_BADGE: Record<string, { label: string; className: string }> = {
-  Pokémon: { label: 'P', className: 'bg-blue-900/70 text-blue-300' },
-  Trainer: { label: 'T', className: 'bg-yellow-900/60 text-yellow-400' },
-  Energy: { label: 'E', className: 'bg-green-900/60 text-green-400' },
-};
-
 export function CardListItem({
   card,
   deckLabel,
@@ -29,7 +23,6 @@ export function CardListItem({
   onEdit,
 }: CardListItemProps) {
   const isComplete = card.collected >= card.needed;
-  const badge = SUPERTYPE_BADGE[card.supertype] ?? { label: '?', className: 'bg-zinc-700 text-zinc-400' };
 
   return (
     <div
@@ -57,20 +50,13 @@ export function CardListItem({
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-0.5">
-          <span
-            className={`inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold ${badge.className}`}
-          >
-            {badge.label}
-          </span>
-          <button
-            className="text-sm font-semibold text-zinc-100 truncate touch-manipulation active:opacity-70 text-left"
-            onClick={() => onImageClick(card)}
-          >
-            {card.name}
-          </button>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <button
+          className="text-sm font-semibold text-zinc-100 truncate touch-manipulation active:opacity-70 text-left w-full"
+          onClick={() => onImageClick(card)}
+        >
+          {card.name}
+        </button>
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[11px] text-zinc-500 font-mono">
             {card.setId.toUpperCase()}-{card.number.padStart(3, '0')}
           </span>

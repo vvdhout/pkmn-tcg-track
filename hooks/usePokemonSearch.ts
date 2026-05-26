@@ -42,7 +42,7 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
       abortRef.current = controller;
 
       let timedOut = false;
-      const timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, 12000);
+      const timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, 30000);
 
       try {
         const cards = await searchCards(query, 1, { sortOrder, formatIds }, controller.signal);

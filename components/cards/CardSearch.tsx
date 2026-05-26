@@ -8,19 +8,26 @@ import { FormatPicker } from '@/components/formats/FormatPicker';
 import type { TcgCard } from '@/types';
 import { CardScanner } from './CardScanner';
 
+type NavImage = { base64: string; mediaType: string };
+
 interface CardSearchProps {
   onSelect: (card: TcgCard) => void;
   onSelectMultiple?: (cards: { card: TcgCard; needed: number }[]) => void;
   excludeIds?: string[];
   formatIds?: string[];
   onChangeFormatIds?: (ids: string[]) => void;
-  initialMode?: 'search' | 'scan';
+  pendingImage?: NavImage | null;
 }
 
-export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], formatIds, onChangeFormatIds, initialMode }: CardSearchProps) {
+export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], formatIds, onChangeFormatIds, pendingImage }: CardSearchProps) {
   const { query, setQuery, results, loading, error, clear } = usePokemonSearch(formatIds ? { formatIds } : undefined);
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
-  const [mode, setMode] = useState<'search' | 'scan'>(initialMode ?? 'search');
+  const [mode, setMode] = useState<'search' | 'scan'>('search');
+
+  // Switch to scan mode as soon as a nav-captured image arrives
+  useEffect(() => {
+    if (pendingImage) setMode('scan');
+  }, [pendingImage]);
   const [showFormatPicker, setShowFormatPicker] = useState(false);
   const filtered = results.filter((c) => !excludeIds.includes(c.id));
 
@@ -40,6 +47,7 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
           onSelectMultiple={onSelectMultiple}
           onBack={() => setMode('search')}
           formatIds={formatIds}
+          pendingImage={pendingImage}
         />
       </div>
     );

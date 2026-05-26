@@ -10,6 +10,7 @@ import { mapToTracked } from '@/services/pokemonTcg';
 import type { TcgCard } from '@/types';
 
 type Pending = { card: TcgCard; needed: number }[];
+type NavImage = { base64: string; mediaType: string };
 
 export default function SearchPage() {
   const { state, dispatch } = useAppContext();
@@ -17,15 +18,16 @@ export default function SearchPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showFormatPicker, setShowFormatPicker] = useState(false);
   const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
+  const [pendingImage, setPendingImage] = useState<NavImage | null>(null);
   const initDoneRef = useRef(false);
 
-  // Detect long-press scan trigger from the bottom nav (?scan=1)
-  const [initialMode] = useState<'search' | 'scan'>(() => {
-    if (typeof window === 'undefined') return 'search';
-    return new URLSearchParams(window.location.search).get('scan') === '1'
-      ? 'scan'
-      : 'search';
-  });
+  // Pick up any camera image captured by the nav swipe-up gesture
+  useEffect(() => {
+    const raw = sessionStorage.getItem('nav-scan-image');
+    if (!raw) return;
+    sessionStorage.removeItem('nav-scan-image');
+    try { setPendingImage(JSON.parse(raw)); } catch { /* ignore malformed */ }
+  }, []);
 
   // Initialize format filter from defaultDeckFormat once state loads
   useEffect(() => {
@@ -107,7 +109,7 @@ export default function SearchPage() {
           onSelect={handleSelect}
           onSelectMultiple={handleSelectMultiple}
           formatIds={selectedFormats.length > 0 ? selectedFormats : undefined}
-          initialMode={initialMode}
+          pendingImage={pendingImage}
         />
       </div>
 

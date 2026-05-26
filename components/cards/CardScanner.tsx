@@ -13,16 +13,19 @@ interface ScannedRaw {
   number: string | null;
 }
 
+type NavImage = { base64: string; mediaType: string };
+
 interface CardScannerProps {
   onSelect: (card: TcgCard) => void;
   onSelectMultiple?: (cards: { card: TcgCard; needed: number }[]) => void;
   onBack: () => void;
   formatIds?: string[];
+  pendingImage?: NavImage | null;
 }
 
 type Phase = 'idle' | 'processing' | 'hub' | 'results';
 
-export function CardScanner({ onSelect, onSelectMultiple, onBack, formatIds }: CardScannerProps) {
+export function CardScanner({ onSelect, onSelectMultiple, onBack, formatIds, pendingImage }: CardScannerProps) {
   const { state } = useAppContext();
   const searchOptions: SearchOptions = {
     sortOrder: state.settings.searchSortOrder,
@@ -36,6 +39,14 @@ export function CardScanner({ onSelect, onSelectMultiple, onBack, formatIds }: C
   const [error, setError] = useState<string | null>(null);
   const [textInput, setTextInput] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Auto-process an image captured by the nav swipe-up gesture
+  useEffect(() => {
+    if (!pendingImage) return;
+    setPhase('processing');
+    runScan({ imageBase64: pendingImage.base64, mediaType: pendingImage.mediaType });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function reset() {
     setPhase('idle');

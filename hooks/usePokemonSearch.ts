@@ -9,17 +9,6 @@ interface SearchOverrides {
   formatIds?: string[];
 }
 
-// Module-level cache — survives navigation within the same browser session,
-// cleared on page refresh. Key = "query|sortOrder|formatKey" (exact match only).
-const searchCache = new Map<string, TcgCard[]>();
-const MAX_CACHE = 50;
-
-function cacheGet(key: string) { return searchCache.has(key) ? searchCache.get(key)! : null; }
-function cacheSet(key: string, cards: TcgCard[]) {
-  searchCache.set(key, cards);
-  if (searchCache.size > MAX_CACHE) searchCache.delete(searchCache.keys().next().value!);
-}
-
 export function usePokemonSearch(overrides?: SearchOverrides) {
   const { state } = useAppContext();
   const sortOrder = state.settings.searchSortOrder;
@@ -30,7 +19,6 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef    = useRef<AbortController | null>(null);
 
-  // Stable reference for formatIds to avoid unnecessary effect re-runs
   const formatIds = overrides?.formatIds;
   const formatKey = formatIds?.join(',') ?? '';
 
@@ -45,19 +33,6 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
       return;
     }
 
-    const cacheKey = `${query.trim()}|${sortOrder}|${formatKey}`;
-    const cached = cacheGet(cacheKey);
-    if (cached !== null) {
-      // Instant results — no debounce, no network call
-      abortRef.current?.abort();
-      setResults(cached);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    // Cache miss: show spinner immediately (eliminates "No cards found" flash
-    // during the debounce window), then fire the fetch after 350 ms of quiet.
     setLoading(true);
     setError(null);
 
@@ -66,14 +41,11 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      // Kill the request after 12 s so a hung API call never leaves an
-      // infinite spinner. timedOut distinguishes this from user-triggered aborts.
       let timedOut = false;
       const timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, 12000);
 
       try {
         const cards = await searchCards(query, 1, { sortOrder, formatIds }, controller.signal);
-        cacheSet(cacheKey, cards);
         setResults(cards);
       } catch (e) {
         const isAbort = (e as Error)?.name === 'AbortError' || (e as DOMException)?.code === 20;

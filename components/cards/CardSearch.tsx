@@ -24,15 +24,31 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
   const [mode, setMode] = useState<'search' | 'scan'>('search');
   const inputRef = useRef<HTMLInputElement>(null);
+  // Set to true for a short window after a focus request so the blur guard
+  // can re-claim focus if something (e.g. the FAB button's synthesized click)
+  // steals it before the keyboard finishes opening.
+  const focusGuardRef = useRef(false);
+  const focusGuardTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function activateFocusGuard() {
+    if (focusGuardTimer.current) clearTimeout(focusGuardTimer.current);
+    focusGuardRef.current = true;
+    focusGuardTimer.current = setTimeout(() => { focusGuardRef.current = false; }, 700);
+  }
 
   // On mount: BottomNav already opened the keyboard by focusing a trap input,
   // so transferring focus here (keyboard already open) works on iOS.
   // Also listens for re-taps when the search page is already active.
   useEffect(() => {
     inputRef.current?.focus();
-    function onFocusRequest() { inputRef.current?.focus(); }
+    activateFocusGuard();
+    function onFocusRequest() {
+      inputRef.current?.focus();
+      activateFocusGuard();
+    }
     window.addEventListener('search-focus-request', onFocusRequest);
     return () => window.removeEventListener('search-focus-request', onFocusRequest);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Switch to scan mode as soon as a nav-captured image arrives
@@ -80,6 +96,14 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
             placeholder="Search cards…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onBlur={() => {
+              // Re-claim focus synchronously if something steals it within the
+              // guard window (e.g. FAB button's synthesized iOS click event).
+              if (focusGuardRef.current) {
+                focusGuardRef.current = false;
+                inputRef.current?.focus();
+              }
+            }}
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="none"

@@ -225,6 +225,7 @@ export function BottomNav() {
           onPointerDown={onDown}
           onPointerUp={onUp}
           onPointerCancel={onCancel}
+          onMouseDown={(e) => e.preventDefault()}
           aria-label="Search or hold to scan cards"
           className="absolute left-1/2 rounded-full flex items-center justify-center touch-manipulation select-none"
           style={{

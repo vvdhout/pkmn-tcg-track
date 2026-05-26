@@ -58,13 +58,18 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
         setResults([]);
       } finally {
         clearTimeout(timeoutId);
-        setLoading(false); // always clear spinner, even on abort
+        // Only clear the spinner if this is still the active request.
+        // A superseded request was aborted by the next debounce callback —
+        // clearing loading here would hide the spinner for the real request.
+        if (abortRef.current === controller) setLoading(false);
       }
     }, 350);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      abortRef.current?.abort();
+      // Do NOT abort here — the next debounce callback aborts the stale
+      // request at its start. Aborting in cleanup kills in-flight fetches
+      // on every keystroke, causing "No cards found" flashes.
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, sortOrder, formatKey]);

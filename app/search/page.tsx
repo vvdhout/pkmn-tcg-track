@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { CardSearch } from '@/components/cards/CardSearch';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
@@ -19,7 +19,15 @@ export default function SearchPage() {
   const [showFormatPicker, setShowFormatPicker] = useState(false);
   const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
   const [pendingImage, setPendingImage] = useState<NavImage | null>(null);
+  const [toast, setToast] = useState<{ message: string; id: number } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initDoneRef = useRef(false);
+
+  const showToast = useCallback((message: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ message, id: Date.now() });
+    toastTimer.current = setTimeout(() => setToast(null), 2500);
+  }, []);
 
   // Pick up any camera image captured by the nav long-press gesture.
   // Uses both mount-check AND a custom event so this works whether the
@@ -55,10 +63,13 @@ export default function SearchPage() {
 
   function handleAddTo(deckId: string | null) {
     if (!pending) return;
+    const count = pending.length;
+    const dest = deckId ? (state.decks.find((d) => d.id === deckId)?.name ?? 'deck') : 'All Cards';
     pending.forEach(({ card, needed }) =>
       dispatch({ type: 'ADD_CARD', deckId, card: mapToTracked(card, needed) })
     );
     setPending(null);
+    showToast(count === 1 ? `Card added to ${dest}` : `${count} cards added to ${dest}`);
   }
 
   const isBatch = (pending?.length ?? 0) > 1;
@@ -179,6 +190,21 @@ export default function SearchPage() {
 
       {/* Settings panel */}
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+
+      {/* Toast */}
+      {toast && (
+        <div
+          key={toast.id}
+          className="fixed left-1/2 px-4 py-2.5 rounded-full bg-zinc-800 border border-app-border text-zinc-100 text-sm shadow-lg pointer-events-none whitespace-nowrap"
+          style={{
+            bottom: 'calc(4rem + env(safe-area-inset-bottom) + 10px)',
+            zIndex: 60,
+            animation: 'toast-in 0.2s ease-out',
+          }}
+        >
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

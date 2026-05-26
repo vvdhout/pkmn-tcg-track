@@ -25,11 +25,14 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
   const [mode, setMode] = useState<'search' | 'scan'>('search');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus the search input synchronously on mount so the keyboard appears
-  // immediately. Works on iOS because the gesture context from the FAB tap
-  // stays alive through client-side navigation (same as ScanResultsSearch).
+  // On mount: BottomNav already opened the keyboard by focusing a trap input,
+  // so transferring focus here (keyboard already open) works on iOS.
+  // Also listens for re-taps when the search page is already active.
   useEffect(() => {
     inputRef.current?.focus();
+    function onFocusRequest() { inputRef.current?.focus(); }
+    window.addEventListener('search-focus-request', onFocusRequest);
+    return () => window.removeEventListener('search-focus-request', onFocusRequest);
   }, []);
 
   // Switch to scan mode as soon as a nav-captured image arrives

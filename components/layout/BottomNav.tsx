@@ -55,6 +55,11 @@ export function BottomNav() {
   const animFrameId = useRef<number | null>(null);
   const buttonRef   = useRef<HTMLButtonElement | null>(null);
   const capturedPtr = useRef<number | null>(null);
+  // Hidden input kept in the DOM so we can focus it synchronously during
+  // the tap gesture, opening the keyboard before navigation. iOS won't
+  // allow focusing inputs created after a gesture, but moving focus between
+  // two inputs (trap → real search input) keeps the keyboard open.
+  const trapInputRef = useRef<HTMLInputElement | null>(null);
 
   // When armed clears (camera closed or photo taken) → reset hold state.
   // Also detects camera dismissal instantly via visibilitychange / focus so
@@ -139,7 +144,17 @@ export function BottomNav() {
     pressing.current = false;
     stopAnimation();
     setHoldProgress(0);
-    if (elapsed < TAP_MS) router.push('/search');
+    if (elapsed < TAP_MS) {
+      // Focus trap input synchronously to open keyboard (iOS gesture context).
+      trapInputRef.current?.focus();
+      if (pathname.startsWith('/search')) {
+        // Already on search — fire a synchronous event so CardSearch can
+        // steal focus back within the same call stack (dispatchEvent is sync).
+        window.dispatchEvent(new CustomEvent('search-focus-request'));
+      } else {
+        router.push('/search');
+      }
+    }
     // Partial hold: cancel, no action
   }
 
@@ -363,6 +378,18 @@ export function BottomNav() {
           zIndex: armed ? 200 : -1,
           pointerEvents: armed ? 'auto' : 'none',
         }}
+      />
+
+      {/* Keyboard focus trap — always in DOM so FAB tap can focus it
+          synchronously within the iOS gesture context, keeping the keyboard
+          open until CardSearch's input steals focus on mount.
+          Must not be readOnly or iOS won't show the keyboard. */}
+      <input
+        ref={trapInputRef}
+        type="text"
+        aria-hidden="true"
+        tabIndex={-1}
+        style={{ position: 'fixed', top: 0, left: -9999, width: 1, height: 1, opacity: 0.001, border: 'none', padding: 0 }}
       />
     </>
   );

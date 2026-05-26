@@ -7,15 +7,14 @@ import { flushSync } from 'react-dom';
 
 const NAV_H    = 64;   // px — nav bar height
 const BTN_D    = 56;   // px — FAB diameter
-const BTN_RISE = 16;   // px — how far FAB protrudes above nav border
+const BTN_RISE = 16;   // px — protrusion above nav border
 const BTN_BTM  = NAV_H + BTN_RISE - BTN_D; // = 24
 
 const RING_R   = 23;   // px — progress ring radius
 const RING_C   = +(2 * Math.PI * RING_R).toFixed(2); // ≈ 144.51
 
-const TRIGGER  = 50;   // px upward drag to arm camera
-const MAX_DRAG = 85;   // px max visual travel
-const TAP_MS   = 200;  // ms max for a quick tap
+const LONG_MS  = 1000; // ms — hold duration to trigger camera
+const TAP_MS   = 200;  // ms — max duration for a quick tap
 
 async function compressImage(file: File, maxDim = 1024): Promise<{ base64: string; mediaType: string }> {
   return new Promise((resolve, reject) => {
@@ -40,86 +39,107 @@ async function compressImage(file: File, maxDim = 1024): Promise<{ base64: strin
 export function BottomNav() {
   const pathname = usePathname();
   const router   = useRouter();
-  const [dragY,  setDragY]  = useState(0);
-  const [armed,  setArmed]  = useState(false);
-  const dragging   = useRef(false);
-  const startY     = useRef(0);
-  const pressStart = useRef(0);
-  const fileRef    = useRef<HTMLInputElement>(null);
 
-  // Safety net: clear armed state if the camera was dismissed without a photo
+  // 0-1 driven by RAF during hold; controls ring fill + icon cross-fade
+  const [holdProgress, setHoldProgress] = useState(0);
+  // True when the full-screen file input overlay is active
+  const [armed, setArmed] = useState(false);
+
+  const pressing    = useRef(false);
+  const pressStart  = useRef(0);
+  const animFrameId = useRef<number | null>(null);
+  const buttonRef   = useRef<HTMLButtonElement | null>(null);
+  const capturedPtr = useRef<number | null>(null);
+
+  // Safety: clear armed if camera was dismissed without a photo
   useEffect(() => {
     if (!armed) return;
     const id = setTimeout(() => setArmed(false), 8000);
     return () => clearTimeout(id);
   }, [armed]);
 
-  const drag         = Math.min(Math.max(dragY, 0), MAX_DRAG);
-  const triggered    = armed || drag >= TRIGGER;
-  const ringProgress = armed ? 1 : Math.min(drag / TRIGGER, 1);
-  const dashOffset   = RING_C * (1 - ringProgress);
+  function stopAnimation() {
+    if (animFrameId.current !== null) {
+      cancelAnimationFrame(animFrameId.current);
+      animFrameId.current = null;
+    }
+  }
+
+  function startAnimation() {
+    const start = Date.now();
+    function frame() {
+      const progress = Math.min((Date.now() - start) / LONG_MS, 1);
+      setHoldProgress(progress);
+
+      if (progress < 1) {
+        animFrameId.current = requestAnimationFrame(frame);
+        return;
+      }
+
+      // Hold complete ─────────────────────────────────────────────────────
+      animFrameId.current = null;
+      pressing.current    = false;
+      navigator.vibrate?.(50); // haptic on Android; silently ignored on iOS
+
+      // flushSync puts the full-screen file input into the DOM *before* we
+      // release pointer capture, so the user's lifted finger natively
+      // activates the input — the only method that works on iOS Safari.
+      flushSync(() => {
+        setArmed(true);
+        setHoldProgress(1);
+      });
+      if (buttonRef.current && capturedPtr.current !== null) {
+        buttonRef.current.releasePointerCapture(capturedPtr.current);
+        capturedPtr.current = null;
+      }
+    }
+    animFrameId.current = requestAnimationFrame(frame);
+  }
 
   function onDown(e: React.PointerEvent<HTMLButtonElement>) {
     e.currentTarget.setPointerCapture(e.pointerId);
-    startY.current    = e.clientY;
+    buttonRef.current  = e.currentTarget;
+    capturedPtr.current = e.pointerId;
     pressStart.current = Date.now();
-    dragging.current  = true;
-    setDragY(0);
+    pressing.current   = true;
+    setHoldProgress(0);
+    startAnimation();
   }
 
-  function onMove(e: React.PointerEvent<HTMLButtonElement>) {
-    if (!dragging.current || armed) return;
-    const dy = Math.max(0, startY.current - e.clientY);
-
-    if (dy >= TRIGGER) {
-      // Use flushSync so the full-screen file input is in the DOM *before* we
-      // release pointer capture. That way the user's ongoing touch immediately
-      // lands on the input and their finger-lift triggers the native camera
-      // picker — this is the only approach that works on iOS Safari.
-      flushSync(() => {
-        setArmed(true);
-        setDragY(dy);
-      });
-      dragging.current = false;
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } else {
-      setDragY(dy);
-    }
-  }
-
-  function onUp(e: React.PointerEvent<HTMLButtonElement>) {
-    // Reaches here when pointer was NOT redirected to the file input overlay
-    // (e.g. drag didn't reach TRIGGER, or Android where .click() works)
-    if (!dragging.current) return;
-    const dy      = Math.max(0, startY.current - e.clientY);
+  function onUp() {
+    if (!pressing.current) return;
     const elapsed = Date.now() - pressStart.current;
-    dragging.current = false;
-    setDragY(0);
-    if (dy >= TRIGGER) {
-      fileRef.current?.click(); // Android: works from pointerup
-    } else if (dy < 10 && elapsed < TAP_MS) {
-      router.push('/search');
-    }
+    pressing.current = false;
+    stopAnimation();
+    setHoldProgress(0);
+    if (elapsed < TAP_MS) router.push('/search');
+    // Partial hold (TAP_MS < elapsed < LONG_MS): cancel, no action
   }
 
   function onCancel() {
-    if (!armed) {
-      dragging.current = false;
-      setDragY(0);
-    }
+    if (armed) return; // let the armed overlay handle cleanup
+    pressing.current = false;
+    stopAnimation();
+    setHoldProgress(0);
   }
 
   async function onFileCaptured(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
     setArmed(false);
+    setHoldProgress(0);
     if (!file) return;
     try {
       const { base64, mediaType } = await compressImage(file);
       sessionStorage.setItem('nav-scan-image', JSON.stringify({ base64, mediaType }));
+      // Notify the search page even if it is already mounted
+      window.dispatchEvent(new CustomEvent('nav-scan-ready'));
     } catch { /* navigate anyway */ }
     router.push('/search');
   }
+
+  const dashOffset = RING_C * (1 - holdProgress);
+  const isHolding  = holdProgress > 0;
 
   return (
     <>
@@ -142,7 +162,6 @@ export function BottomNav() {
             <NavListIcon />
           </Link>
 
-          {/* Space reserved for the FAB */}
           <div style={{ width: BTN_D + 24 }} />
 
           <Link
@@ -156,30 +175,29 @@ export function BottomNav() {
           </Link>
         </div>
 
-        {/* FAB — swipe up to open camera, tap for search */}
+        {/* FAB ─ tap for search, hold 1 s for camera scan */}
         <button
+          ref={buttonRef}
           onPointerDown={onDown}
-          onPointerMove={onMove}
           onPointerUp={onUp}
           onPointerCancel={onCancel}
-          aria-label="Search or scan cards"
-          className="absolute left-1/2 rounded-full flex items-center justify-center touch-manipulation select-none"
+          aria-label="Search or hold to scan cards"
+          className="absolute left-1/2 rounded-full flex items-center justify-center touch-manipulation select-none overflow-hidden"
           style={{
             width: BTN_D,
             height: BTN_D,
             bottom: `calc(${BTN_BTM}px + env(safe-area-inset-bottom))`,
             zIndex: 10,
             WebkitUserSelect: 'none',
-            backgroundColor: triggered ? '#e4e4e7' : '#1c1c1e',
+            backgroundColor: '#1c1c1e',
             border: '1px solid rgba(255,255,255,0.08)',
             boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
-            transform: `translateX(-50%) translateY(${-(armed ? Math.round(MAX_DRAG * 0.6) : drag)}px)`,
-            transition: (!dragging.current && !armed)
-              ? 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background-color 0.15s'
-              : armed ? 'background-color 0.15s' : 'none',
+            // Subtle scale-up during hold, spring back on release
+            transform: `translateX(-50%) scale(${1 + holdProgress * 0.1})`,
+            transition: pressing.current ? 'none' : 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)',
           }}
         >
-          {/* Progress ring — fills as drag approaches TRIGGER */}
+          {/* Progress ring */}
           <svg
             width={BTN_D}
             height={BTN_D}
@@ -201,18 +219,30 @@ export function BottomNav() {
             />
           </svg>
 
-          {triggered
-            ? <NavCameraIcon />
-            : <NavSearchIcon active={pathname.startsWith('/search')} />}
+          {/* Icon cross-fade: search → camera as holdProgress rises */}
+          <div className="relative flex items-center justify-center" style={{ width: 22, height: 22 }}>
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              style={{ opacity: 1 - holdProgress, transition: isHolding ? 'none' : 'opacity 0.2s' }}
+            >
+              <NavSearchIcon active={pathname.startsWith('/search')} />
+            </div>
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              style={{ opacity: holdProgress, transition: isHolding ? 'none' : 'opacity 0.2s' }}
+            >
+              <NavCameraIcon />
+            </div>
+          </div>
         </button>
       </div>
 
-      {/* Full-screen file input overlay — only active when armed.
-          After releasePointerCapture the user's ongoing touch lands here,
-          so lifting the finger directly activates the native camera picker.
-          This bypasses the iOS restriction on programmatic input.click(). */}
+      {/* Full-screen file input overlay ─────────────────────────────────
+          Only raised to z-index 200 when armed. After releasePointerCapture
+          the user's ongoing touch is over this invisible input, so lifting
+          the finger fires a native touchend directly on the input element —
+          the only way to reliably open the camera on iOS Safari. */}
       <input
-        ref={fileRef}
         type="file"
         accept="image/*"
         capture="environment"
@@ -256,7 +286,7 @@ function NavSearchIcon({ active }: { active: boolean }) {
 
 function NavCameraIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-zinc-700">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-zinc-200">
       <path
         d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
         stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"

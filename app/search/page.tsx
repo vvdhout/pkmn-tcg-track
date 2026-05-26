@@ -21,12 +21,19 @@ export default function SearchPage() {
   const [pendingImage, setPendingImage] = useState<NavImage | null>(null);
   const initDoneRef = useRef(false);
 
-  // Pick up any camera image captured by the nav swipe-up gesture
+  // Pick up any camera image captured by the nav long-press gesture.
+  // Uses both mount-check AND a custom event so this works whether the
+  // search page is freshly navigated-to OR was already mounted.
   useEffect(() => {
-    const raw = sessionStorage.getItem('nav-scan-image');
-    if (!raw) return;
-    sessionStorage.removeItem('nav-scan-image');
-    try { setPendingImage(JSON.parse(raw)); } catch { /* ignore malformed */ }
+    function checkNavScan() {
+      const raw = sessionStorage.getItem('nav-scan-image');
+      if (!raw) return;
+      sessionStorage.removeItem('nav-scan-image');
+      try { setPendingImage(JSON.parse(raw)); } catch { /* ignore malformed */ }
+    }
+    checkNavScan(); // check on mount
+    window.addEventListener('nav-scan-ready', checkNavScan);
+    return () => window.removeEventListener('nav-scan-ready', checkNavScan);
   }, []);
 
   // Initialize format filter from defaultDeckFormat once state loads

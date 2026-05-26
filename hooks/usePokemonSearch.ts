@@ -79,7 +79,8 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
           if (timedOut) setError('Search timed out. Please try again.');
           return;
         }
-        setError('Search failed. Check your connection and try again.');
+        const status = (e as Error)?.message?.match(/\d{3}/)?.[0];
+        setError(status ? `Search failed (${status}). Check your connection and try again.` : 'Search failed. Check your connection and try again.');
         setResults([]);
       } finally {
         clearTimeout(timeoutId);

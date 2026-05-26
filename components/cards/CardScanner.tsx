@@ -392,7 +392,6 @@ function ScanResultsSearch({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Card name…"
-              autoFocus
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="none"

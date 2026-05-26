@@ -25,11 +25,11 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
   const [mode, setMode] = useState<'search' | 'scan'>('search');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus the search input on mount so the user can type immediately.
-  // autoFocus alone doesn't reliably work after client-side navigation.
+  // Focus the search input synchronously on mount so the keyboard appears
+  // immediately. Works on iOS because the gesture context from the FAB tap
+  // stays alive through client-side navigation (same as ScanResultsSearch).
   useEffect(() => {
-    const id = setTimeout(() => inputRef.current?.focus(), 50);
-    return () => clearTimeout(id);
+    inputRef.current?.focus();
   }, []);
 
   // Switch to scan mode as soon as a nav-captured image arrives

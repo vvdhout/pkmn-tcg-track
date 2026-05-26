@@ -145,13 +145,16 @@ export function BottomNav() {
     stopAnimation();
     setHoldProgress(0);
     if (elapsed < TAP_MS) {
-      // Focus trap input synchronously to open keyboard (iOS gesture context).
-      trapInputRef.current?.focus();
       if (pathname.startsWith('/search')) {
-        // Already on search — fire a synchronous event so CardSearch can
-        // steal focus back within the same call stack (dispatchEvent is sync).
+        // Already on search — dispatchEvent is synchronous so the listener
+        // runs inside the touch handler call stack; iOS treats it as a valid
+        // gesture and allows the focus. No trap needed (avoids flicker).
         window.dispatchEvent(new CustomEvent('search-focus-request'));
       } else {
+        // Focus the trap input first so iOS opens the keyboard during this
+        // gesture. CardSearch's useEffect then steals focus on mount; moving
+        // focus between two inputs keeps the keyboard open.
+        trapInputRef.current?.focus();
         router.push('/search');
       }
     }

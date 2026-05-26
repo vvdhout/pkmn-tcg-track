@@ -4,11 +4,6 @@ import { getFormat } from '@/services/formats';
 const BASE_URL = 'https://api.pokemontcg.io/v2';
 const SELECTED_FIELDS = 'id,name,supertype,subtypes,types,number,set,images,cardmarket';
 
-function apiHeaders(): HeadersInit {
-  const key = process.env.NEXT_PUBLIC_POKEMON_TCG_API_KEY;
-  return key ? { 'X-Api-Key': key } : {};
-}
-
 export interface SearchOptions {
   sortOrder?: 'asc' | 'desc'; // 'asc' = oldest first (default)
   formatIds?: string[];        // format IDs to filter by; undefined/empty = no filter
@@ -28,7 +23,7 @@ export async function fetchSets(signal?: AbortSignal): Promise<TcgSet[]> {
   url.searchParams.set('orderBy', 'releaseDate');
   url.searchParams.set('pageSize', '250');
   url.searchParams.set('select', 'id,name,series,releaseDate,printedTotal,images');
-  const res = await fetch(url.toString(), { headers: apiHeaders(), ...(signal ? { signal } : {}) });
+  const res = await fetch(url.toString(), signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
   const json = await res.json();
   _setCache = json.data as TcgSet[];
@@ -97,14 +92,14 @@ export async function searchCards(query: string, page = 1, options?: SearchOptio
   url.searchParams.set('page', String(page));
   url.searchParams.set('select', SELECTED_FIELDS);
 
-  const res = await fetch(url.toString(), { headers: apiHeaders(), signal });
+  const res = await fetch(url.toString(), { signal });
   if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
   const json = await res.json();
   return json.data as TcgCard[];
 }
 
 export async function getCard(id: string): Promise<TcgCard> {
-  const res = await fetch(`${BASE_URL}/cards/${id}`, { headers: apiHeaders() });
+  const res = await fetch(`${BASE_URL}/cards/${id}`);
   if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
   const json = await res.json();
   return json.data as TcgCard;
@@ -132,7 +127,7 @@ export async function findCards(
     url.searchParams.set('pageSize', '20');
     url.searchParams.set('orderBy', orderBy);
     url.searchParams.set('select', SELECTED_FIELDS);
-    const res = await fetch(url.toString(), { headers: apiHeaders() });
+    const res = await fetch(url.toString());
     if (!res.ok) return [];
     const json = await res.json();
     return json.data as TcgCard[];
@@ -165,7 +160,7 @@ export async function refreshCardPrices(
     url.searchParams.set('pageSize', String(BATCH));
     url.searchParams.set('select', 'id,cardmarket');
     try {
-      const res = await fetch(url.toString(), { headers: apiHeaders() });
+      const res = await fetch(url.toString());
       if (!res.ok) continue;
       const json = await res.json();
       for (const card of json.data as TcgCard[]) {

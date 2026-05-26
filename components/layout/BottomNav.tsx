@@ -55,15 +55,27 @@ export function BottomNav() {
   const buttonRef   = useRef<HTMLButtonElement | null>(null);
   const capturedPtr = useRef<number | null>(null);
 
-  // When armed clears (camera closed or photo taken) → reset hold state
-  // This is the fix for the icon not returning to search after closing camera.
+  // When armed clears (camera closed or photo taken) → reset hold state.
+  // Also detects camera dismissal instantly via visibilitychange / focus so
+  // the UI doesn't stay stuck in the "armed" state when the user cancels.
   useEffect(() => {
     if (!armed) {
       setHoldProgress(0);
       return;
     }
-    const id = setTimeout(() => setArmed(false), 8000);
-    return () => clearTimeout(id);
+
+    function clear() { setArmed(false); }
+    function onVisibility() { if (!document.hidden) clear(); }
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', clear);
+    const timeout = setTimeout(clear, 3000); // short fallback
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', clear);
+      clearTimeout(timeout);
+    };
   }, [armed]);
 
   function stopAnimation() {

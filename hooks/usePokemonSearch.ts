@@ -14,7 +14,7 @@ interface SearchOverrides {
 const searchCache = new Map<string, TcgCard[]>();
 const MAX_CACHE = 50;
 
-function cacheGet(key: string) { return searchCache.get(key) ?? null; }
+function cacheGet(key: string) { return searchCache.has(key) ? searchCache.get(key)! : null; }
 function cacheSet(key: string, cards: TcgCard[]) {
   searchCache.set(key, cards);
   if (searchCache.size > MAX_CACHE) searchCache.delete(searchCache.keys().next().value!);
@@ -47,7 +47,7 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
 
     const cacheKey = `${query.trim()}|${sortOrder}|${formatKey}`;
     const cached = cacheGet(cacheKey);
-    if (cached) {
+    if (cached !== null) {
       // Instant results — no debounce, no network call
       abortRef.current?.abort();
       setResults(cached);

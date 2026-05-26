@@ -34,7 +34,7 @@ export default function DeckDetailPage({ params }: Props) {
   if (!deck) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
-        <p className="text-zinc-500 text-sm">Deck not found.</p>
+        <p className="text-zinc-500 text-sm">List not found.</p>
       </div>
     );
   }
@@ -131,7 +131,7 @@ export default function DeckDetailPage({ params }: Props) {
             onClick={() => { deleteDeck(id); router.replace('/decks'); }}
             className="w-full py-3 text-sm font-medium text-red-500 border border-red-900/40 bg-red-900/10 active:bg-red-900/20 touch-manipulation"
           >
-            Delete Deck
+            Delete List
           </button>
         }
       />

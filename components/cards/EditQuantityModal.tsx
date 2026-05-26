@@ -101,7 +101,7 @@ export function EditQuantityModal({
             onClick={() => { onMoveToStandalone(); onClose(); }}
             className="w-full py-3 rounded bg-app-elevated text-zinc-300 text-sm font-medium border border-app-border active:bg-app-muted touch-manipulation"
           >
-            Remove from deck
+            Remove from list
           </button>
         )}
 
@@ -111,7 +111,7 @@ export function EditQuantityModal({
             onClick={() => setShowDeckPicker((v) => !v)}
             className="w-full py-3 rounded bg-app-elevated text-zinc-300 text-sm font-medium border border-app-border active:bg-app-muted touch-manipulation"
           >
-            {showDeckPicker ? 'Cancel' : 'Add to deck'}
+            {showDeckPicker ? 'Cancel' : 'Add to list'}
           </button>
         )}
 

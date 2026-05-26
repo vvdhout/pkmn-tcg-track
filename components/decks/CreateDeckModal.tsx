@@ -40,12 +40,12 @@ export function CreateDeckModal({ open, onClose, onCreate }: CreateDeckModalProp
           className="relative bg-app-surface border-t border-app-border p-4 pb-safe"
           onClick={(e) => e.stopPropagation()}
         >
-          <h2 className="text-base font-semibold text-zinc-100 mb-4">New Deck</h2>
+          <h2 className="text-base font-semibold text-zinc-100 mb-4">New List</h2>
 
           <input
             autoFocus
             type="text"
-            placeholder="Deck name…"
+            placeholder="List name…"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submit()}

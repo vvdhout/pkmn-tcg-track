@@ -5,7 +5,7 @@ const PROMPT = `You analyze content to extract Pokémon TCG card information. Re
 The input may be:
 - A photo of physical cards (read the name printed at the top, the number at the bottom like "051/198" or "051", and the set info)
 - A text list of card names with optional quantities, set codes, or card numbers
-- A screenshot of a deck list or collection
+- A screenshot of a card list or collection
 
 For each card return an object with:
 - "name": card name exactly as printed or written (string, required)

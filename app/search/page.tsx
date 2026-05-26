@@ -134,7 +134,7 @@ export default function SearchPage() {
                 onClick={() => handleAddTo(null)}
                 className="w-full flex items-center px-4 py-3.5 border-b border-app-border active:bg-app-elevated touch-manipulation text-left"
               >
-                <span className="text-sm text-zinc-500 italic">Standalone (no deck)</span>
+                <span className="text-sm text-zinc-500 italic">Standalone (no list)</span>
               </button>
             </div>
 

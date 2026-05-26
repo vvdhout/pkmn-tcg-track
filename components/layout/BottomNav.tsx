@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 const NAV_ITEMS = [
   {
     href: '/decks',
-    label: 'Decks',
+    label: 'Lists',
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
         <rect x="2" y="6" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="1.8" />

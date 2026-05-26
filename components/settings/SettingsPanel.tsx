@@ -108,14 +108,14 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
             ))}
           </div>
           <p className="text-[11px] text-zinc-600 mt-2.5 leading-relaxed">
-            Which cards are shown by default when opening a deck or the All Cards view.
+            Which cards are shown by default when opening a list or the All Cards view.
           </p>
         </div>
 
         {/* Default deck format */}
         <div className="px-4 py-5 border-b border-app-border">
           <p className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase mb-3">
-            Default Deck Format
+            Default List Format
           </p>
           <button
             onClick={() => setShowDefaultFormatPicker(true)}
@@ -130,7 +130,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           </button>
           <div className="flex items-center justify-between mt-3">
             <p className="text-[11px] text-zinc-600 leading-relaxed flex-1">
-              Pre-selected format when creating a new deck.
+              Pre-selected format when creating a new list.
             </p>
             <button
               onClick={() => setView('pick-favorites')}

@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePokemonSearch } from '@/hooks/usePokemonSearch';
 import { getFormat } from '@/services/formats';
 import { FormatPicker } from '@/components/formats/FormatPicker';
@@ -23,6 +23,14 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
   const { query, setQuery, results, loading, error, clear } = usePokemonSearch(formatIds ? { formatIds } : undefined);
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
   const [mode, setMode] = useState<'search' | 'scan'>('search');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus the search input on mount so the user can type immediately.
+  // autoFocus alone doesn't reliably work after client-side navigation.
+  useEffect(() => {
+    const id = setTimeout(() => inputRef.current?.focus(), 50);
+    return () => clearTimeout(id);
+  }, []);
 
   // Switch to scan mode as soon as a nav-captured image arrives
   useEffect(() => {
@@ -62,6 +70,7 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
             <SearchIcon />
           </div>
           <input
+            ref={inputRef}
             autoFocus
             type="search"
             inputMode="search"

@@ -18,8 +18,9 @@ const IND_SIZE = 120; // px — diameter of the HUD circle
 const IND_R    = 50;  // ring radius inside IND_SIZE viewbox
 const IND_C    = +(2 * Math.PI * IND_R).toFixed(2);
 
-const LONG_MS  = 1000;
-const TAP_MS   = 200;
+const LONG_MS       = 1000;
+const TAP_MS        = 200;
+const HOLD_DELAY_MS = 150; // don't show any visual feedback before this
 
 async function compressImage(file: File, maxDim = 1024): Promise<{ base64: string; mediaType: string }> {
   return new Promise((resolve, reject) => {
@@ -87,35 +88,36 @@ export function BottomNav() {
 
   function startAnimation() {
     const start = Date.now();
-    function frame() {
-      const progress = Math.min((Date.now() - start) / LONG_MS, 1);
-      setHoldProgress(progress);
+    const VISUAL_MS = LONG_MS - HOLD_DELAY_MS; // 850 ms of actual animation
 
-      if (progress < 1) {
-        animFrameId.current = requestAnimationFrame(frame);
+    function frame() {
+      const elapsed = Date.now() - start;
+
+      if (elapsed >= LONG_MS) {
+        // Hold complete
+        animFrameId.current = null;
+        pressing.current    = false;
+        navigator.vibrate?.(60);
+        setSnapped(true);
+        setTimeout(() => setSnapped(false), 300);
+        flushSync(() => {
+          setArmed(true);
+          setHoldProgress(1);
+        });
+        if (buttonRef.current && capturedPtr.current !== null) {
+          buttonRef.current.releasePointerCapture(capturedPtr.current);
+          capturedPtr.current = null;
+        }
         return;
       }
 
-      animFrameId.current = null;
-      pressing.current    = false;
-
-      // Haptic (Android only — iOS Safari does not support the Vibration API)
-      navigator.vibrate?.(60);
-
-      // Visual "snap" pulse to substitute for haptic on iOS
-      setSnapped(true);
-      setTimeout(() => setSnapped(false), 300);
-
-      // flushSync: put the full-screen file input in the DOM *before* releasing
-      // pointer capture so the user's lifted finger natively activates it on iOS.
-      flushSync(() => {
-        setArmed(true);
-        setHoldProgress(1);
-      });
-      if (buttonRef.current && capturedPtr.current !== null) {
-        buttonRef.current.releasePointerCapture(capturedPtr.current);
-        capturedPtr.current = null;
+      // Only start showing visual feedback after the delay so quick taps
+      // never trigger any animation at all.
+      if (elapsed >= HOLD_DELAY_MS) {
+        setHoldProgress((elapsed - HOLD_DELAY_MS) / VISUAL_MS);
       }
+
+      animFrameId.current = requestAnimationFrame(frame);
     }
     animFrameId.current = requestAnimationFrame(frame);
   }

@@ -14,12 +14,13 @@ interface CardSearchProps {
   excludeIds?: string[];
   formatIds?: string[];
   onChangeFormatIds?: (ids: string[]) => void;
+  initialMode?: 'search' | 'scan';
 }
 
-export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], formatIds, onChangeFormatIds }: CardSearchProps) {
+export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], formatIds, onChangeFormatIds, initialMode }: CardSearchProps) {
   const { query, setQuery, results, loading, error, clear } = usePokemonSearch(formatIds ? { formatIds } : undefined);
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
-  const [mode, setMode] = useState<'search' | 'scan'>('search');
+  const [mode, setMode] = useState<'search' | 'scan'>(initialMode ?? 'search');
   const [showFormatPicker, setShowFormatPicker] = useState(false);
   const filtered = results.filter((c) => !excludeIds.includes(c.id));
 

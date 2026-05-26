@@ -19,6 +19,14 @@ export default function SearchPage() {
   const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
   const initDoneRef = useRef(false);
 
+  // Detect long-press scan trigger from the bottom nav (?scan=1)
+  const [initialMode] = useState<'search' | 'scan'>(() => {
+    if (typeof window === 'undefined') return 'search';
+    return new URLSearchParams(window.location.search).get('scan') === '1'
+      ? 'scan'
+      : 'search';
+  });
+
   // Initialize format filter from defaultDeckFormat once state loads
   useEffect(() => {
     if (!initDoneRef.current && state.settings.defaultDeckFormat) {
@@ -99,6 +107,7 @@ export default function SearchPage() {
           onSelect={handleSelect}
           onSelectMultiple={handleSelectMultiple}
           formatIds={selectedFormats.length > 0 ? selectedFormats : undefined}
+          initialMode={initialMode}
         />
       </div>
 

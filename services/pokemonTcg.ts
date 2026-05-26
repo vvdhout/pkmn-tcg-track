@@ -17,13 +17,13 @@ function buildOrderBy(options?: SearchOptions): string {
 
 let _setCache: TcgSet[] | null = null;
 
-export async function fetchSets(): Promise<TcgSet[]> {
+export async function fetchSets(signal?: AbortSignal): Promise<TcgSet[]> {
   if (_setCache) return _setCache;
   const url = new URL(`${BASE_URL}/sets`);
   url.searchParams.set('orderBy', 'releaseDate');
   url.searchParams.set('pageSize', '250');
   url.searchParams.set('select', 'id,name,series,releaseDate,printedTotal,images');
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
   const json = await res.json();
   _setCache = json.data as TcgSet[];
@@ -36,7 +36,7 @@ export async function fetchSets(): Promise<TcgSet[]> {
  * Returns 'NONE' → no sets match (search should return [])
  * Returns string → e.g. "(set.id:sv5 OR set.id:sv6 OR ...)"
  */
-async function resolveFormatFilter(formatIds?: string[]): Promise<string | null> {
+async function resolveFormatFilter(formatIds?: string[], signal?: AbortSignal): Promise<string | null> {
   if (!formatIds || formatIds.length === 0) return null;
 
   // If any selected format is unlimited (no date bounds), the union is all sets → no filter
@@ -46,7 +46,7 @@ async function resolveFormatFilter(formatIds?: string[]): Promise<string | null>
   })) return null;
 
   try {
-    const sets = await fetchSets();
+    const sets = await fetchSets(signal);
     const matchingIds = new Set<string>();
 
     for (const formatId of formatIds) {
@@ -79,7 +79,7 @@ function buildNameQuery(query: string): string {
 export async function searchCards(query: string, page = 1, options?: SearchOptions, signal?: AbortSignal): Promise<TcgCard[]> {
   if (!query.trim()) return [];
 
-  const setFilter = await resolveFormatFilter(options?.formatIds);
+  const setFilter = await resolveFormatFilter(options?.formatIds, signal);
   if (setFilter === 'NONE') return [];
 
   const parts = [buildNameQuery(query)];

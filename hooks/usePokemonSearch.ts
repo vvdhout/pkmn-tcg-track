@@ -56,8 +56,11 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
       return;
     }
 
-    // Cache miss: debounce then fetch. Each new fire aborts the previous
-    // in-flight request so a slow earlier response can never overwrite a later one.
+    // Cache miss: show spinner immediately (eliminates "No cards found" flash
+    // during the debounce window), then fire the fetch after 350 ms of quiet.
+    setLoading(true);
+    setError(null);
+
     debounceRef.current = setTimeout(async () => {
       abortRef.current?.abort();
       const controller = new AbortController();
@@ -68,14 +71,13 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
       let timedOut = false;
       const timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, 12000);
 
-      setLoading(true);
-      setError(null);
       try {
         const cards = await searchCards(query, 1, { sortOrder, formatIds }, controller.signal);
         cacheSet(cacheKey, cards);
         setResults(cards);
       } catch (e) {
-        if ((e as Error)?.name === 'AbortError') {
+        const isAbort = (e as Error)?.name === 'AbortError' || (e as DOMException)?.code === 20;
+        if (isAbort) {
           if (timedOut) setError('Search timed out. Please try again.');
           return;
         }

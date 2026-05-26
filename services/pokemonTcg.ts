@@ -78,15 +78,7 @@ async function resolveFormatFilter(formatIds?: string[]): Promise<string | null>
 
 function buildNameQuery(query: string): string {
   const words = query.trim().split(/\s+/).filter(Boolean);
-  // First word uses a prefix query (name:word*) — index-optimised and fast.
-  // Subsequent words keep both-side wildcards so that suffix-style qualifiers
-  // like "ex" in "Charizard ex" still match (the card name doesn't start with "ex").
-  return words
-    .map((w, i) => {
-      const escaped = w.replace(/'/g, "\\'");
-      return i === 0 ? `name:${escaped}*` : `name:*${escaped}*`;
-    })
-    .join(' ');
+  return words.map((w) => `name:*${w.replace(/'/g, "\\'")}*`).join(' ');
 }
 
 export async function searchCards(query: string, page = 1, options?: SearchOptions, signal?: AbortSignal): Promise<TcgCard[]> {

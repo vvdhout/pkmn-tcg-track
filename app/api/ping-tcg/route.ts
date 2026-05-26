@@ -1,19 +1,39 @@
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+const BASE = 'https://api.pokemontcg.io/v2';
+
+async function probe(label: string, url: string) {
   const start = Date.now();
   try {
-    const res = await fetch(
-      'https://api.pokemontcg.io/v2/cards?q=name:pikachu&pageSize=1&select=id,name',
-      { signal: AbortSignal.timeout(10000) },
-    );
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
     const elapsed = Date.now() - start;
-    if (!res.ok) {
-      return NextResponse.json({ ok: false, status: res.status, elapsed });
+    let sample = null;
+    if (res.ok) {
+      const json = await res.json();
+      sample = json.data?.[0] ?? json.data ?? null;
     }
-    const json = await res.json();
-    return NextResponse.json({ ok: true, status: res.status, elapsed, sample: json.data?.[0] ?? null });
+    return { label, url, ok: res.ok, status: res.status, elapsed, sample };
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e), elapsed: Date.now() - start });
+    return { label, url, ok: false, error: String(e), elapsed: Date.now() - start };
   }
+}
+
+export async function GET() {
+  // Test 1: sets endpoint (no query, confirms basic connectivity)
+  const setsUrl = new URL(`${BASE}/sets`);
+  setsUrl.searchParams.set('pageSize', '1');
+  setsUrl.searchParams.set('select', 'id,name');
+
+  // Test 2: cards endpoint built exactly like the app (URLSearchParams-encoded)
+  const cardsUrl = new URL(`${BASE}/cards`);
+  cardsUrl.searchParams.set('q', 'name:*pikachu*');
+  cardsUrl.searchParams.set('pageSize', '1');
+  cardsUrl.searchParams.set('select', 'id,name');
+
+  const [sets, cards] = await Promise.all([
+    probe('sets', setsUrl.toString()),
+    probe('cards', cardsUrl.toString()),
+  ]);
+
+  return NextResponse.json({ sets, cards });
 }

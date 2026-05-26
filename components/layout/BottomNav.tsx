@@ -5,16 +5,21 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { flushSync } from 'react-dom';
 
-const NAV_H    = 64;   // px — nav bar height
-const BTN_D    = 56;   // px — FAB diameter
-const BTN_RISE = 16;   // px — protrusion above nav border
+const NAV_H    = 64;
+const BTN_D    = 56;
+const BTN_RISE = 16;
 const BTN_BTM  = NAV_H + BTN_RISE - BTN_D; // = 24
 
-const RING_R   = 23;   // px — progress ring radius
-const RING_C   = +(2 * Math.PI * RING_R).toFixed(2); // ≈ 144.51
+const RING_R   = 23;
+const RING_C   = +(2 * Math.PI * RING_R).toFixed(2);
 
-const LONG_MS  = 1000; // ms — hold duration to trigger camera
-const TAP_MS   = 200;  // ms — max duration for a quick tap
+// Center indicator circle
+const IND_SIZE = 120; // px — diameter of the HUD circle
+const IND_R    = 50;  // ring radius inside IND_SIZE viewbox
+const IND_C    = +(2 * Math.PI * IND_R).toFixed(2);
+
+const LONG_MS  = 1000;
+const TAP_MS   = 200;
 
 async function compressImage(file: File, maxDim = 1024): Promise<{ base64: string; mediaType: string }> {
   return new Promise((resolve, reject) => {
@@ -40,10 +45,9 @@ export function BottomNav() {
   const pathname = usePathname();
   const router   = useRouter();
 
-  // 0-1 driven by RAF during hold; controls ring fill + icon cross-fade
-  const [holdProgress, setHoldProgress] = useState(0);
-  // True when the full-screen file input overlay is active
-  const [armed, setArmed] = useState(false);
+  const [holdProgress, setHoldProgress] = useState(0); // 0-1
+  const [armed,        setArmed]        = useState(false);
+  const [snapped,      setSnapped]      = useState(false); // brief flash at completion
 
   const pressing    = useRef(false);
   const pressStart  = useRef(0);
@@ -51,9 +55,13 @@ export function BottomNav() {
   const buttonRef   = useRef<HTMLButtonElement | null>(null);
   const capturedPtr = useRef<number | null>(null);
 
-  // Safety: clear armed if camera was dismissed without a photo
+  // When armed clears (camera closed or photo taken) → reset hold state
+  // This is the fix for the icon not returning to search after closing camera.
   useEffect(() => {
-    if (!armed) return;
+    if (!armed) {
+      setHoldProgress(0);
+      return;
+    }
     const id = setTimeout(() => setArmed(false), 8000);
     return () => clearTimeout(id);
   }, [armed]);
@@ -76,14 +84,18 @@ export function BottomNav() {
         return;
       }
 
-      // Hold complete ─────────────────────────────────────────────────────
       animFrameId.current = null;
       pressing.current    = false;
-      navigator.vibrate?.(50); // haptic on Android; silently ignored on iOS
 
-      // flushSync puts the full-screen file input into the DOM *before* we
-      // release pointer capture, so the user's lifted finger natively
-      // activates the input — the only method that works on iOS Safari.
+      // Haptic (Android only — iOS Safari does not support the Vibration API)
+      navigator.vibrate?.(60);
+
+      // Visual "snap" pulse to substitute for haptic on iOS
+      setSnapped(true);
+      setTimeout(() => setSnapped(false), 300);
+
+      // flushSync: put the full-screen file input in the DOM *before* releasing
+      // pointer capture so the user's lifted finger natively activates it on iOS.
       flushSync(() => {
         setArmed(true);
         setHoldProgress(1);
@@ -103,6 +115,7 @@ export function BottomNav() {
     pressStart.current = Date.now();
     pressing.current   = true;
     setHoldProgress(0);
+    setSnapped(false);
     startAnimation();
   }
 
@@ -113,11 +126,11 @@ export function BottomNav() {
     stopAnimation();
     setHoldProgress(0);
     if (elapsed < TAP_MS) router.push('/search');
-    // Partial hold (TAP_MS < elapsed < LONG_MS): cancel, no action
+    // Partial hold: cancel, no action
   }
 
   function onCancel() {
-    if (armed) return; // let the armed overlay handle cleanup
+    if (armed) return;
     pressing.current = false;
     stopAnimation();
     setHoldProgress(0);
@@ -126,20 +139,19 @@ export function BottomNav() {
   async function onFileCaptured(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
-    setArmed(false);
-    setHoldProgress(0);
+    setArmed(false); // triggers useEffect → setHoldProgress(0) → icon resets to search
     if (!file) return;
     try {
       const { base64, mediaType } = await compressImage(file);
       sessionStorage.setItem('nav-scan-image', JSON.stringify({ base64, mediaType }));
-      // Notify the search page even if it is already mounted
       window.dispatchEvent(new CustomEvent('nav-scan-ready'));
     } catch { /* navigate anyway */ }
     router.push('/search');
   }
 
-  const dashOffset = RING_C * (1 - holdProgress);
-  const isHolding  = holdProgress > 0;
+  const fabDashOffset = RING_C * (1 - holdProgress);
+  const indDashOffset = IND_C  * (1 - holdProgress);
+  const showHUD       = holdProgress > 0; // visible during hold AND while armed
 
   return (
     <>
@@ -182,7 +194,7 @@ export function BottomNav() {
           onPointerUp={onUp}
           onPointerCancel={onCancel}
           aria-label="Search or hold to scan cards"
-          className="absolute left-1/2 rounded-full flex items-center justify-center touch-manipulation select-none overflow-hidden"
+          className="absolute left-1/2 rounded-full flex items-center justify-center touch-manipulation select-none"
           style={{
             width: BTN_D,
             height: BTN_D,
@@ -191,13 +203,16 @@ export function BottomNav() {
             WebkitUserSelect: 'none',
             backgroundColor: '#1c1c1e',
             border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
-            // Subtle scale-up during hold, spring back on release
-            transform: `translateX(-50%) scale(${1 + holdProgress * 0.1})`,
-            transition: pressing.current ? 'none' : 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)',
+            boxShadow: snapped
+              ? '0 0 0 8px rgba(255,255,255,0.18), 0 4px 24px rgba(0,0,0,0.6)'
+              : '0 4px 24px rgba(0,0,0,0.6)',
+            transform: `translateX(-50%) scale(${snapped ? 1.15 : 1 + holdProgress * 0.08})`,
+            transition: pressing.current
+              ? 'box-shadow 0.15s, transform 0.15s'
+              : 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s',
           }}
         >
-          {/* Progress ring */}
+          {/* Progress ring on the button border */}
           <svg
             width={BTN_D}
             height={BTN_D}
@@ -215,33 +230,110 @@ export function BottomNav() {
               strokeWidth="3"
               strokeLinecap="round"
               strokeDasharray={RING_C}
-              strokeDashoffset={dashOffset}
+              strokeDashoffset={fabDashOffset}
             />
           </svg>
 
-          {/* Icon cross-fade: search → camera as holdProgress rises */}
+          {/* Icon cross-fade: search → camera */}
           <div className="relative flex items-center justify-center" style={{ width: 22, height: 22 }}>
-            <div
-              className="absolute inset-0 flex items-center justify-center"
-              style={{ opacity: 1 - holdProgress, transition: isHolding ? 'none' : 'opacity 0.2s' }}
-            >
+            <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: 1 - holdProgress }}>
               <NavSearchIcon active={pathname.startsWith('/search')} />
             </div>
-            <div
-              className="absolute inset-0 flex items-center justify-center"
-              style={{ opacity: holdProgress, transition: isHolding ? 'none' : 'opacity 0.2s' }}
-            >
-              <NavCameraIcon />
+            <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: holdProgress }}>
+              <NavCameraIcon small />
             </div>
           </div>
         </button>
       </div>
 
-      {/* Full-screen file input overlay ─────────────────────────────────
-          Only raised to z-index 200 when armed. After releasePointerCapture
-          the user's ongoing touch is over this invisible input, so lifting
-          the finger fires a native touchend directly on the input element —
-          the only way to reliably open the camera on iOS Safari. */}
+      {/* ── Centre HUD ─────────────────────────────────────────────────────
+          Shown during hold so the user can see the progress above their finger. */}
+      {showHUD && (
+        <div
+          className="fixed inset-0 flex flex-col items-center justify-center pointer-events-none"
+          style={{ zIndex: 49 }}
+        >
+          <div
+            style={{
+              opacity: Math.min(holdProgress * 4, 1), // fades in fast at start of hold
+              transform: `scale(${0.75 + holdProgress * 0.25})`,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 10,
+            }}
+          >
+            {/* Circle with progress ring + camera icon */}
+            <div style={{ position: 'relative', width: IND_SIZE, height: IND_SIZE }}>
+              <svg
+                width={IND_SIZE}
+                height={IND_SIZE}
+                viewBox={`0 0 ${IND_SIZE} ${IND_SIZE}`}
+                style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}
+              >
+                {/* Background fill */}
+                <circle
+                  cx={IND_SIZE / 2}
+                  cy={IND_SIZE / 2}
+                  r={IND_SIZE / 2 - 2}
+                  fill="rgba(20,20,22,0.88)"
+                />
+                {/* Subtle border */}
+                <circle
+                  cx={IND_SIZE / 2}
+                  cy={IND_SIZE / 2}
+                  r={IND_SIZE / 2 - 2}
+                  fill="none"
+                  stroke="rgba(255,255,255,0.06)"
+                  strokeWidth="1.5"
+                />
+                {/* Progress ring */}
+                <circle
+                  cx={IND_SIZE / 2}
+                  cy={IND_SIZE / 2}
+                  r={IND_R}
+                  fill="none"
+                  stroke={snapped ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.9)'}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={IND_C}
+                  strokeDashoffset={indDashOffset}
+                />
+              </svg>
+              {/* Camera icon centred inside the circle */}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <NavCameraIcon />
+              </div>
+            </div>
+
+            {/* Label */}
+            <p
+              style={{
+                fontSize: 12,
+                color: holdProgress >= 1 ? 'rgba(212,212,216,1)' : 'rgba(113,113,122,1)',
+                letterSpacing: '0.04em',
+                fontWeight: 500,
+                transition: 'color 0.2s',
+              }}
+            >
+              {holdProgress >= 1 ? 'Release to open camera' : 'Keep holding…'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Full-screen file input ─────────────────────────────────────────
+          Raised to z-index 200 when armed so the user's lifted finger
+          fires a native touchend on it, bypassing iOS Safari's restriction
+          on programmatic input.click() calls. */}
       <input
         type="file"
         accept="image/*"
@@ -284,9 +376,10 @@ function NavSearchIcon({ active }: { active: boolean }) {
   );
 }
 
-function NavCameraIcon() {
+function NavCameraIcon({ small }: { small?: boolean }) {
+  const size = small ? 22 : 36;
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-zinc-200">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className="text-zinc-200">
       <path
         d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
         stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"

@@ -81,7 +81,7 @@ function buildNameQuery(query: string): string {
   return words.map((w) => `name:*${w.replace(/'/g, "\\'")}*`).join(' ');
 }
 
-export async function searchCards(query: string, page = 1, options?: SearchOptions): Promise<TcgCard[]> {
+export async function searchCards(query: string, page = 1, options?: SearchOptions, signal?: AbortSignal): Promise<TcgCard[]> {
   if (!query.trim()) return [];
 
   const setFilter = await resolveFormatFilter(options?.formatIds);
@@ -97,7 +97,7 @@ export async function searchCards(query: string, page = 1, options?: SearchOptio
   url.searchParams.set('page', String(page));
   url.searchParams.set('select', SELECTED_FIELDS);
 
-  const res = await fetch(url.toString(), { headers: headers() });
+  const res = await fetch(url.toString(), { headers: headers(), signal });
   if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
   const json = await res.json();
   return json.data as TcgCard[];

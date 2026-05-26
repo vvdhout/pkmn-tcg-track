@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import type { TcgCard } from '@/types';
-import { searchCards, type SearchOptions } from '@/services/pokemonTcg';
+import { searchCards, findCards, type SearchOptions } from '@/services/pokemonTcg';
 import { useAppContext } from '@/context/AppContext';
 
 interface ScannedRaw {
@@ -93,14 +93,29 @@ export function CardScanner({ onSelect, onSelectMultiple, onBack, formatIds }: C
     }
 
     setScannedCards(scanned);
-    setSelectedCards(new Array(scanned.length).fill(null));
 
     if (scanned.length === 1) {
+      setSelectedCards([null]);
       setActiveIndex(0);
       setPhase('results');
-    } else {
-      setPhase('hub');
+      return;
     }
+
+    // Auto-resolve cards that have exactly one match so the user only
+    // needs to choose versions for genuinely ambiguous cards.
+    const autoSelected = await Promise.all(
+      scanned.map(async (raw) => {
+        try {
+          const results = await findCards(raw.name, raw.setCode, raw.number, searchOptions);
+          return results.length === 1 ? results[0] : null;
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    setSelectedCards(autoSelected);
+    setPhase('hub');
   }
 
   // Called from hub to navigate into a card's results

@@ -12,10 +12,15 @@ interface Result {
   error?: string;
 }
 
+function pingHeaders(): HeadersInit {
+  const key = process.env.NEXT_PUBLIC_POKEMON_TCG_API_KEY;
+  return key ? { 'X-Api-Key': key } : {};
+}
+
 async function probe(label: string, url: string): Promise<Result> {
   const start = Date.now();
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    const res = await fetch(url, { headers: pingHeaders(), signal: AbortSignal.timeout(12000) });
     const elapsed = Date.now() - start;
     if (!res.ok) return { label, url, ok: false, status: res.status, elapsed };
     const json = await res.json();

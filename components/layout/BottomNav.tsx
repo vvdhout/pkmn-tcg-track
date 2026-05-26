@@ -9,9 +9,12 @@ const NAV_ITEMS = [
     label: 'Lists',
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-        <rect x="2" y="6" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M6 6V5a2 2 0 012-2h6a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M7 11h8M7 15h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <circle cx="4" cy="6" r="1.5" fill="currentColor" />
+        <path d="M8 6h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <circle cx="4" cy="11" r="1.5" fill="currentColor" />
+        <path d="M8 11h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <circle cx="4" cy="16" r="1.5" fill="currentColor" />
+        <path d="M8 16h7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       </svg>
     ),
   },
@@ -50,12 +53,12 @@ export function BottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-0.5 px-6 py-2 text-xs font-medium transition-colors touch-manipulation ${
+            aria-label={item.label}
+            className={`flex items-center justify-center px-8 py-3 transition-colors touch-manipulation ${
               active ? 'text-white' : 'text-zinc-500'
             }`}
           >
-            <span className={active ? 'text-white' : 'text-zinc-500'}>{item.icon}</span>
-            {item.label}
+            {item.icon}
           </Link>
         );
       })}

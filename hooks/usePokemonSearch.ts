@@ -9,6 +9,17 @@ interface SearchOverrides {
   formatIds?: string[];
 }
 
+// Module-level cache — survives navigation within the same browser session,
+// cleared on page refresh. Key = "query|sortOrder|formatKey" (exact match only).
+const searchCache = new Map<string, TcgCard[]>();
+const MAX_CACHE = 50;
+
+function cacheGet(key: string) { return searchCache.get(key) ?? null; }
+function cacheSet(key: string, cards: TcgCard[]) {
+  searchCache.set(key, cards);
+  if (searchCache.size > MAX_CACHE) searchCache.delete(searchCache.keys().next().value!);
+}
+
 export function usePokemonSearch(overrides?: SearchOverrides) {
   const { state } = useAppContext();
   const sortOrder = state.settings.searchSortOrder;
@@ -34,9 +45,19 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
       return;
     }
 
-    // Short debounce to batch rapid keystrokes without feeling sluggish.
-    // Each fire aborts any still-running request so a slow earlier response
-    // can never overwrite results from a more recent query.
+    const cacheKey = `${query.trim()}|${sortOrder}|${formatKey}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) {
+      // Instant results — no debounce, no network call
+      abortRef.current?.abort();
+      setResults(cached);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    // Cache miss: debounce then fetch. Each new fire aborts the previous
+    // in-flight request so a slow earlier response can never overwrite a later one.
     debounceRef.current = setTimeout(async () => {
       abortRef.current?.abort();
       const controller = new AbortController();
@@ -46,6 +67,7 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
       setError(null);
       try {
         const cards = await searchCards(query, 1, { sortOrder, formatIds }, controller.signal);
+        cacheSet(cacheKey, cards);
         setResults(cards);
       } catch (e) {
         if ((e as Error)?.name === 'AbortError') return;

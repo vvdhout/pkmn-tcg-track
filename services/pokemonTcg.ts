@@ -73,7 +73,7 @@ async function resolveFormatFilter(formatIds?: string[], signal?: AbortSignal): 
 
 function buildNameQuery(query: string): string {
   const words = query.trim().split(/\s+/).filter(Boolean);
-  return words.map((w) => `name:${w.replace(/'/g, "\\'")}*`).join(' ');
+  return words.map((w) => `name:*${w.replace(/'/g, "\\'")}*`).join(' ');
 }
 
 export async function searchCards(query: string, page = 1, options?: SearchOptions, signal?: AbortSignal): Promise<TcgCard[]> {
@@ -141,10 +141,10 @@ export async function findCards(
     if (r2.length > 0) return r2;
   }
 
-  const r3 = await query(`name:${name}*`, false, true);
+  const r3 = await query(`name:*${name}*`, false, true);
   if (r3.length > 0) return r3;
 
-  return query(`name:${name}*`, false, false);
+  return query(`name:*${name}*`, false, false);
 }
 
 export async function refreshCardPrices(

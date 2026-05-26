@@ -54,7 +54,7 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }, 150);
+    }, 350);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);

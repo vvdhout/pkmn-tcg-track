@@ -63,6 +63,11 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
       const controller = new AbortController();
       abortRef.current = controller;
 
+      // Kill the request after 12 s so a hung API call never leaves an
+      // infinite spinner. timedOut distinguishes this from user-triggered aborts.
+      let timedOut = false;
+      const timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, 12000);
+
       setLoading(true);
       setError(null);
       try {
@@ -70,11 +75,15 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
         cacheSet(cacheKey, cards);
         setResults(cards);
       } catch (e) {
-        if ((e as Error)?.name === 'AbortError') return;
+        if ((e as Error)?.name === 'AbortError') {
+          if (timedOut) setError('Search timed out. Please try again.');
+          return;
+        }
         setError('Search failed. Check your connection and try again.');
         setResults([]);
       } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        clearTimeout(timeoutId);
+        setLoading(false); // always clear spinner, even on abort
       }
     }, 350);
 

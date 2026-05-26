@@ -12,19 +12,15 @@ interface Result {
   error?: string;
 }
 
-function pingHeaders(): HeadersInit {
-  const key = process.env.NEXT_PUBLIC_POKEMON_TCG_API_KEY;
-  return key ? { 'X-Api-Key': key } : {};
-}
-
 async function probe(label: string, url: string): Promise<Result> {
   const start = Date.now();
   try {
-    const res = await fetch(url, { headers: pingHeaders(), signal: AbortSignal.timeout(12000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
     const elapsed = Date.now() - start;
     if (!res.ok) return { label, url, ok: false, status: res.status, elapsed };
     const json = await res.json();
-    return { label, url, ok: true, status: res.status, elapsed, sample: JSON.stringify(json.data?.[0] ?? null) };
+    const arr = Array.isArray(json) ? json : (json.data ?? []);
+    return { label, url, ok: true, status: res.status, elapsed, sample: JSON.stringify(arr[0] ?? null) };
   } catch (e) {
     return { label, url, ok: false, error: String(e), elapsed: Date.now() - start };
   }
@@ -38,14 +34,12 @@ export default function PingPage() {
     setRunning(true);
     setResults(null);
 
-    const setsUrl = new URL('https://api.pokemontcg.io/v2/sets');
-    setsUrl.searchParams.set('pageSize', '1');
-    setsUrl.searchParams.set('select', 'id,name');
+    const setsUrl = new URL('https://api.tcgdex.net/v2/en/sets');
+    setsUrl.searchParams.set('pagination:itemsPerPage', '1');
 
-    const cardsUrl = new URL('https://api.pokemontcg.io/v2/cards');
-    cardsUrl.searchParams.set('q', 'name:*pikachu*');
-    cardsUrl.searchParams.set('pageSize', '1');
-    cardsUrl.searchParams.set('select', 'id,name');
+    const cardsUrl = new URL('https://api.tcgdex.net/v2/en/cards');
+    cardsUrl.searchParams.set('name', '*pikachu*');
+    cardsUrl.searchParams.set('pagination:itemsPerPage', '1');
 
     const out = await Promise.all([
       probe('sets', setsUrl.toString()),

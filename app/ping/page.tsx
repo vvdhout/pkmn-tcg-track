@@ -34,17 +34,15 @@ export default function PingPage() {
     setRunning(true);
     setResults(null);
 
-    // Use the same manual URL construction as pokemonTcg.ts (literal ':')
     const BASE = 'https://api.tcgdex.net/v2/en';
     const setsUrl = `${BASE}/sets?pagination:itemsPerPage=1`;
-    // Mirrors searchCards() exactly — includes sort params which the previous test omitted
-    const cardsNoSort = `${BASE}/cards?name=*pikachu*&pagination:itemsPerPage=1`;
-    const cardsWithSort = `${BASE}/cards?name=*pikachu*&pagination:page=1&pagination:itemsPerPage=1&sort:field=set.releaseDate&sort:order=Asc`;
+    const briefUrl = `${BASE}/cards?name=pikachu&pagination:page=1&pagination:itemsPerPage=3`;
+    const fullUrl = `${BASE}/cards/basep-1`;
 
     const out = await Promise.all([
       probe('sets', setsUrl),
-      probe('cards (no sort)', cardsNoSort),
-      probe('cards (with sort)', cardsWithSort),
+      probe('cards brief (name=pikachu)', briefUrl),
+      probe('card full (basep-1)', fullUrl),
     ]);
     setResults(out);
     setRunning(false);
@@ -73,7 +71,7 @@ export default function PingPage() {
                 {r.status && <span className="text-zinc-500">HTTP {r.status}</span>}
               </div>
               {r.error && <p className="text-red-400 text-xs break-all">{r.error}</p>}
-              {r.sample && <p className="text-zinc-400 text-xs break-all">{JSON.stringify(r.sample)}</p>}
+              {r.sample && <p className="text-zinc-400 text-xs break-all">{r.sample}</p>}
               <p className="text-zinc-600 text-[10px] break-all mt-1">{r.url}</p>
             </div>
           ))}

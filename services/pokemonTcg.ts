@@ -11,7 +11,21 @@ import {
 const BASE_URL = 'https://api.tcgdex.net/v2/en';
 const HYDRATE_CONCURRENCY = 6;
 const SEARCH_PAGE_SIZE = 20;
-const FORMAT_SEARCH_BRIEF_LIMIT = 250;
+const API_BRIEF_BATCH = 250;
+const MAX_API_PAGES = 20;
+
+export interface SearchSession {
+  sortedBriefs: TcgDexCardBrief[];
+  shownCount: number;
+  allowedSetIds: string[] | null;
+  sortOrder: 'asc' | 'desc';
+}
+
+export interface PaginatedSearchResult {
+  cards: TcgCard[];
+  hasMore: boolean;
+  session: SearchSession;
+}
 
 export interface SearchOptions {
   sortOrder?: 'asc' | 'desc';
@@ -371,33 +385,96 @@ export async function getCard(
   return card;
 }
 
+async function fetchAllMatchingBriefs(
+  query: string,
+  signal?: AbortSignal,
+): Promise<TcgDexCardBrief[]> {
+  const all: TcgDexCardBrief[] = [];
+  for (let page = 1; page <= MAX_API_PAGES; page++) {
+    const batch = await fetchCardBriefs(
+      [['name', query.trim()]],
+      API_BRIEF_BATCH,
+      page,
+      signal,
+    );
+    all.push(...batch);
+    if (batch.length < API_BRIEF_BATCH) break;
+  }
+  return all;
+}
+
+export async function searchCardsBegin(
+  query: string,
+  options?: SearchOptions,
+  signal?: AbortSignal,
+): Promise<PaginatedSearchResult> {
+  const emptySession: SearchSession = {
+    sortedBriefs: [],
+    shownCount: 0,
+    allowedSetIds: null,
+    sortOrder: options?.sortOrder ?? 'asc',
+  };
+
+  if (!query.trim()) {
+    return { cards: [], hasMore: false, session: emptySession };
+  }
+
+  const allowedSetIds = await resolveFormatFilter(options?.formatIds, signal);
+  if (allowedSetIds !== null && allowedSetIds.length === 0) {
+    return { cards: [], hasMore: false, session: { ...emptySession, allowedSetIds } };
+  }
+
+  const sortOrder = options?.sortOrder ?? 'asc';
+  const rawBriefs = await fetchAllMatchingBriefs(query, signal);
+  const filteredBriefs = filterBriefsByFormat(rawBriefs, allowedSetIds);
+  const sortedBriefs = await sortBriefsByReleaseDate(filteredBriefs, sortOrder, signal);
+  const slice = sortedBriefs.slice(0, SEARCH_PAGE_SIZE);
+  const cards = filterByFormat(await hydrateCards(slice, signal), allowedSetIds);
+
+  return {
+    cards: clientSort(cards, sortOrder),
+    hasMore: slice.length < sortedBriefs.length,
+    session: {
+      sortedBriefs,
+      shownCount: slice.length,
+      allowedSetIds,
+      sortOrder,
+    },
+  };
+}
+
+export async function searchCardsLoadMore(
+  session: SearchSession,
+  signal?: AbortSignal,
+): Promise<PaginatedSearchResult> {
+  const slice = session.sortedBriefs.slice(
+    session.shownCount,
+    session.shownCount + SEARCH_PAGE_SIZE,
+  );
+
+  if (slice.length === 0) {
+    return { cards: [], hasMore: false, session };
+  }
+
+  const cards = filterByFormat(await hydrateCards(slice, signal), session.allowedSetIds);
+  const shownCount = session.shownCount + slice.length;
+
+  return {
+    cards: clientSort(cards, session.sortOrder),
+    hasMore: shownCount < session.sortedBriefs.length,
+    session: { ...session, shownCount },
+  };
+}
+
+/** First page only — used by findCards and other single-page callers. */
 export async function searchCards(
   query: string,
-  page = 1,
+  _page = 1,
   options?: SearchOptions,
   signal?: AbortSignal,
 ): Promise<TcgCard[]> {
-  if (!query.trim()) return [];
-
-  const allowedSetIds = await resolveFormatFilter(options?.formatIds, signal);
-  if (allowedSetIds !== null && allowedSetIds.length === 0) return [];
-
-  const sortOrder = options?.sortOrder ?? 'asc';
-  const briefLimit = allowedSetIds ? FORMAT_SEARCH_BRIEF_LIMIT : SEARCH_PAGE_SIZE;
-
-  const briefs = await fetchCardBriefs(
-    [['name', query.trim()]],
-    briefLimit,
-    page,
-    signal,
-  );
-
-  const filteredBriefs = filterBriefsByFormat(briefs, allowedSetIds);
-  const sortedBriefs = await sortBriefsByReleaseDate(filteredBriefs, sortOrder, signal);
-  const limitedBriefs = sortedBriefs.slice(0, SEARCH_PAGE_SIZE);
-  const cards = filterByFormat(await hydrateCards(limitedBriefs, signal), allowedSetIds);
-
-  return clientSort(cards, sortOrder);
+  const result = await searchCardsBegin(query, options, signal);
+  return result.cards;
 }
 
 export async function findCards(

@@ -20,7 +20,8 @@ interface CardSearchProps {
 }
 
 export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], formatIds, onChangeFormatIds, pendingImage }: CardSearchProps) {
-  const { query, setQuery, results, loading, error, clear } = usePokemonSearch(formatIds ? { formatIds } : undefined);
+  const { query, setQuery, results, loading, loadingMore, hasMore, loadMore, error, clear } =
+    usePokemonSearch(formatIds ? { formatIds } : undefined);
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
   const [mode, setMode] = useState<'search' | 'scan'>('search');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -183,6 +184,17 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
             onImageClick={setPopupCard}
           />
         ))}
+        {!loading && !error && hasMore && filtered.length > 0 && (
+          <div className="px-4 py-4 border-t border-app-border">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="w-full py-2.5 text-sm font-medium border border-zinc-700 text-zinc-300 active:bg-app-elevated touch-manipulation disabled:opacity-50"
+            >
+              {loadingMore ? 'Loading…' : 'Show more'}
+            </button>
+          </div>
+        )}
       </div>
 
       <SearchImagePopup

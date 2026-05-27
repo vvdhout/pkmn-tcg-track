@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { TcgAssetImage } from '@/components/cards/TcgAssetImage';
 import type { TcgCard } from '@/types';
-import { searchCards, findCards, type SearchOptions } from '@/services/pokemonTcg';
+import { findCards, type SearchOptions } from '@/services/pokemonTcg';
+import { usePokemonSearch } from '@/hooks/usePokemonSearch';
 import { useAppContext } from '@/context/AppContext';
 
 interface ScannedRaw {
@@ -364,39 +365,19 @@ function ScanResultsSearch({
   onSelect: (card: TcgCard) => void;
   onBack: () => void;
 }) {
-  const [query, setQuery] = useState(initialQuery);
-  const [cards, setCards] = useState<TcgCard[]>([]);
-  const [loading, setLoading] = useState(false);
+  const {
+    query,
+    setQuery,
+    results: cards,
+    loading,
+    loadingMore,
+    hasMore,
+    loadMore,
+  } = usePokemonSearch({
+    formatIds: options.formatIds,
+    initialQuery,
+  });
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
-  const formatKey = options.formatIds?.join(',') ?? '';
-
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) { setCards([]); return; }
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const results = await searchCards(q, 1, options);
-        setCards(results);
-      } catch {
-        setCards([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 350);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, options.sortOrder, formatKey]);
-
-  useEffect(() => {
-    if (!initialQuery.trim()) return;
-    setLoading(true);
-    searchCards(initialQuery.trim(), 1, options)
-      .then(setCards)
-      .catch(() => setCards([]))
-      .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.sortOrder, formatKey]);
 
   return (
     <>
@@ -458,6 +439,17 @@ function ScanResultsSearch({
               onImageClick={setPopupCard}
             />
           ))}
+          {!loading && hasMore && cards.length > 0 && (
+            <div className="px-4 py-4 border-t border-app-border">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="w-full py-2.5 text-sm font-medium border border-zinc-700 text-zinc-300 active:bg-app-elevated touch-manipulation disabled:opacity-50"
+              >
+                {loadingMore ? 'Loading…' : 'Show more'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

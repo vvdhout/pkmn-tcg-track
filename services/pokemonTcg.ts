@@ -187,6 +187,15 @@ export async function searchCards(
 
   const sortOrder = options?.sortOrder === 'desc' ? 'Desc' : 'Asc';
 
+  // Client-side sort helper — TCGdex /cards doesn't reliably support sort:field
+  function sortCards(cards: TcgCard[]): TcgCard[] {
+    return cards.sort((a, b) =>
+      sortOrder === 'Desc'
+        ? b.set.releaseDate.localeCompare(a.set.releaseDate)
+        : a.set.releaseDate.localeCompare(b.set.releaseDate),
+    );
+  }
+
   if (allowedSetIds) {
     // Pass the matching set IDs directly to TCGdex so the API does the filtering.
     // TCGdex interprets repeated set.id params as OR — cards from any of those sets.
@@ -197,7 +206,7 @@ export async function searchCards(
 
     if (useServerFilter) {
       const setParams = allowedSetIds.map((id) => `set.id=${id}`).join('&');
-      const url = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&${setParams}&pagination:page=${page}&pagination:itemsPerPage=250&sort:field=set.releaseDate&sort:order=${sortOrder}`;
+      const url = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&${setParams}&pagination:page=${page}&pagination:itemsPerPage=250`;
       const res = await fetch(url, signal ? { signal } : undefined);
       if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
       const json = await res.json();
@@ -207,7 +216,7 @@ export async function searchCards(
       if (mapped.length > 0) {
         cards = mapped;
       } else {
-        const fallbackUrl = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&pagination:page=${page}&pagination:itemsPerPage=500&sort:field=set.releaseDate&sort:order=${sortOrder}`;
+        const fallbackUrl = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&pagination:page=${page}&pagination:itemsPerPage=500`;
         const fb = await fetch(fallbackUrl, signal ? { signal } : undefined);
         if (!fb.ok) throw new Error(`TCG API error: ${fb.status}`);
         const fbJson = await fb.json();
@@ -219,7 +228,7 @@ export async function searchCards(
       }
     } else {
       // Expanded / very large formats: fetch a big window and filter client-side
-      const url = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&pagination:page=${page}&pagination:itemsPerPage=500&sort:field=set.releaseDate&sort:order=${sortOrder}`;
+      const url = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&pagination:page=${page}&pagination:itemsPerPage=500`;
       const res = await fetch(url, signal ? { signal } : undefined);
       if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
       const json = await res.json();
@@ -230,15 +239,15 @@ export async function searchCards(
         .filter((c) => c.set.id && allowed.has(c.set.id));
     }
 
-    return cards;
+    return sortCards(cards);
   }
 
   // No format filter: fetch 20 with user's sort preference
-  const url = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&pagination:page=${page}&pagination:itemsPerPage=20&sort:field=set.releaseDate&sort:order=${sortOrder}`;
+  const url = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&pagination:page=${page}&pagination:itemsPerPage=20`;
   const res = await fetch(url, signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
   const json = await res.json();
-  return unwrap<TcgDexCard>(json).filter((r) => r?.set).map(mapCard);
+  return sortCards(unwrap<TcgDexCard>(json).filter((r) => r?.set).map(mapCard));
 }
 
 export async function getCard(id: string): Promise<TcgCard> {
@@ -255,7 +264,6 @@ export async function findCards(
   options?: SearchOptions,
 ): Promise<TcgCard[]> {
   const cleanNumber = number?.replace(/\/.*$/, '').replace(/^0+(\d)/, '$1') ?? null;
-  const sortOrder = options?.sortOrder === 'desc' ? 'Desc' : 'Asc';
 
   const allowedSetIds = await resolveFormatFilter(options?.formatIds);
   if (allowedSetIds !== null && allowedSetIds.length === 0) return [];
@@ -274,8 +282,6 @@ export async function findCards(
     if (useSet && setCode) parts.push(`set.id=${setCode.toLowerCase()}`);
     if (useNumber && cleanNumber) parts.push(`localId=${cleanNumber}`);
     parts.push(`pagination:itemsPerPage=20`);
-    parts.push(`sort:field=set.releaseDate`);
-    parts.push(`sort:order=${sortOrder}`);
     const url = `${BASE_URL}/cards?${parts.join('&')}`;
     const res = await fetch(url);
     if (!res.ok) return [];

@@ -173,6 +173,9 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               </button>
             ))}
           </div>
+          <p className="text-[11px] text-zinc-600 mt-2.5 leading-relaxed">
+            How search results are ordered by set release date when adding or finding cards.
+          </p>
         </div>
 
         {/* Data on this device */}

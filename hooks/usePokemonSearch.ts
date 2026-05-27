@@ -37,8 +37,8 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
       try {
         const cards = await searchCards(query, 1, { sortOrder, formatIds });
         setResults(cards);
-      } catch {
-        setError('Search failed. Check your connection and try again.');
+      } catch (err) {
+        setError(`Search failed: ${err instanceof Error ? err.message : String(err)}`);
         setResults([]);
       } finally {
         setLoading(false);

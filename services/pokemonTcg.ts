@@ -110,11 +110,10 @@ let _setCache: TcgSet[] | null = null;
 
 export async function fetchSets(signal?: AbortSignal): Promise<TcgSet[]> {
   if (_setCache) return _setCache;
-  const url = new URL(`${BASE_URL}/sets`);
-  url.searchParams.set('pagination:itemsPerPage', '500');
-  url.searchParams.set('sort:field', 'releaseDate');
-  url.searchParams.set('sort:order', 'Asc');
-  const res = await fetch(url.toString(), signal ? { signal } : undefined);
+  // Build URL manually — URLSearchParams encodes ':' as '%3A' which TCGdex
+  // may not decode, breaking the colon-namespaced filter params.
+  const url = `${BASE_URL}/sets?pagination:itemsPerPage=500&sort:field=releaseDate&sort:order=Asc`;
+  const res = await fetch(url, signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
   const json = await res.json();
   _setCache = unwrap<TcgDexSet>(json).map((s) => ({
@@ -182,15 +181,11 @@ export async function searchCards(
   // Fetch more when we'll be filtering client-side so the visible result
   // count doesn't shrink too aggressively.
   const pageSize = allowedSetIds ? 60 : 20;
+  const sortOrder = options?.sortOrder === 'desc' ? 'Desc' : 'Asc';
+  // Use manual URL construction so ':' stays literal (URLSearchParams encodes it as %3A)
+  const url = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&pagination:page=${page}&pagination:itemsPerPage=${pageSize}&sort:field=set.releaseDate&sort:order=${sortOrder}`;
 
-  const url = new URL(`${BASE_URL}/cards`);
-  url.searchParams.set('name', `*${query.trim()}*`);
-  url.searchParams.set('pagination:page', String(page));
-  url.searchParams.set('pagination:itemsPerPage', String(pageSize));
-  url.searchParams.set('sort:field', 'set.releaseDate');
-  url.searchParams.set('sort:order', options?.sortOrder === 'desc' ? 'Desc' : 'Asc');
-
-  const res = await fetch(url.toString(), signal ? { signal } : undefined);
+  const res = await fetch(url, signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
   const json = await res.json();
   let cards = unwrap<TcgDexCard>(json).map(mapCard);
@@ -227,14 +222,19 @@ export async function findCards(
     useSet: boolean,
     useNumber: boolean,
   ): Promise<TcgCard[]> {
-    const url = new URL(`${BASE_URL}/cards`);
-    url.searchParams.set('name', nameParam);
-    if (useSet && setCode) url.searchParams.set('set.id', setCode.toLowerCase());
-    if (useNumber && cleanNumber) url.searchParams.set('localId', cleanNumber);
-    url.searchParams.set('pagination:itemsPerPage', '20');
-    url.searchParams.set('sort:field', 'set.releaseDate');
-    url.searchParams.set('sort:order', sortOrder);
-    const res = await fetch(url.toString());
+    // Preserve leading/trailing '*' wildcards but encode the inner text
+    const hasLeadWild = nameParam.startsWith('*');
+    const hasTrailWild = nameParam.endsWith('*');
+    const inner = nameParam.replace(/^\*/, '').replace(/\*$/, '');
+    const nameValue = `${hasLeadWild ? '*' : ''}${encodeURIComponent(inner)}${hasTrailWild ? '*' : ''}`;
+    const parts: string[] = [`name=${nameValue}`];
+    if (useSet && setCode) parts.push(`set.id=${setCode.toLowerCase()}`);
+    if (useNumber && cleanNumber) parts.push(`localId=${cleanNumber}`);
+    parts.push(`pagination:itemsPerPage=20`);
+    parts.push(`sort:field=set.releaseDate`);
+    parts.push(`sort:order=${sortOrder}`);
+    const url = `${BASE_URL}/cards?${parts.join('&')}`;
+    const res = await fetch(url);
     if (!res.ok) return [];
     const json = await res.json();
     let cards = unwrap<TcgDexCard>(json).map(mapCard);

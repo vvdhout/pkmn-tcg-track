@@ -34,16 +34,17 @@ export default function PingPage() {
     setRunning(true);
     setResults(null);
 
-    const setsUrl = new URL('https://api.tcgdex.net/v2/en/sets');
-    setsUrl.searchParams.set('pagination:itemsPerPage', '1');
-
-    const cardsUrl = new URL('https://api.tcgdex.net/v2/en/cards');
-    cardsUrl.searchParams.set('name', '*pikachu*');
-    cardsUrl.searchParams.set('pagination:itemsPerPage', '1');
+    // Use the same manual URL construction as pokemonTcg.ts (literal ':')
+    const BASE = 'https://api.tcgdex.net/v2/en';
+    const setsUrl = `${BASE}/sets?pagination:itemsPerPage=1`;
+    // Mirrors searchCards() exactly — includes sort params which the previous test omitted
+    const cardsNoSort = `${BASE}/cards?name=*pikachu*&pagination:itemsPerPage=1`;
+    const cardsWithSort = `${BASE}/cards?name=*pikachu*&pagination:page=1&pagination:itemsPerPage=1&sort:field=set.releaseDate&sort:order=Asc`;
 
     const out = await Promise.all([
-      probe('sets', setsUrl.toString()),
-      probe('cards', cardsUrl.toString()),
+      probe('sets', setsUrl),
+      probe('cards (no sort)', cardsNoSort),
+      probe('cards (with sort)', cardsWithSort),
     ]);
     setResults(out);
     setRunning(false);

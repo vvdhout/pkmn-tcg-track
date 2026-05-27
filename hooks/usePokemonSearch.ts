@@ -14,6 +14,10 @@ interface SearchOverrides {
   initialQuery?: string;
 }
 
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === 'AbortError';
+}
+
 export function usePokemonSearch(overrides?: SearchOverrides) {
   const { state } = useAppContext();
   const sortOrder = state.settings.searchSortOrder;
@@ -25,14 +29,18 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionRef = useRef<SearchSession | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const searchGenRef = useRef(0);
 
   const formatIds = overrides?.formatIds;
   const formatKey = formatIds?.join(',') ?? '';
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
 
     if (!query.trim()) {
+      searchGenRef.current += 1;
       setResults([]);
       setError(null);
       setLoading(false);
@@ -41,26 +49,38 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
       return;
     }
 
-    debounceRef.current = setTimeout(async () => {
+    debounceRef.current = setTimeout(() => {
+      const generation = ++searchGenRef.current;
+      const controller = new AbortController();
+      abortRef.current = controller;
+
       setLoading(true);
       setError(null);
       setHasMore(false);
       sessionRef.current = null;
-      try {
-        const result = await searchCardsBegin(query, { sortOrder, formatIds });
-        sessionRef.current = result.session;
-        setResults(result.cards);
-        setHasMore(result.hasMore);
-      } catch (err) {
-        setError(`Search failed: ${err instanceof Error ? err.message : String(err)}`);
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
+
+      searchCardsBegin(query, { sortOrder, formatIds }, controller.signal)
+        .then((result) => {
+          if (generation !== searchGenRef.current) return;
+          sessionRef.current = result.session;
+          setResults(result.cards);
+          setHasMore(result.hasMore);
+        })
+        .catch((err) => {
+          if (generation !== searchGenRef.current) return;
+          if (isAbortError(err)) return;
+          setError(`Search failed: ${err instanceof Error ? err.message : String(err)}`);
+          setResults([]);
+        })
+        .finally(() => {
+          if (generation !== searchGenRef.current) return;
+          setLoading(false);
+        });
     }, 350);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      abortRef.current?.abort();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, sortOrder, formatKey]);
@@ -74,6 +94,7 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
       setResults((prev) => [...prev, ...result.cards]);
       setHasMore(result.hasMore);
     } catch (err) {
+      if (isAbortError(err)) return;
       setError(`Search failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoadingMore(false);
@@ -81,10 +102,13 @@ export function usePokemonSearch(overrides?: SearchOverrides) {
   }, [hasMore, loadingMore, loading]);
 
   function clear() {
+    searchGenRef.current += 1;
+    abortRef.current?.abort();
     setQuery('');
     setResults([]);
     setError(null);
     setHasMore(false);
+    setLoading(false);
     sessionRef.current = null;
   }
 

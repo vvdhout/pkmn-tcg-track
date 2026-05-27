@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { TcgAssetImage } from '@/components/cards/TcgAssetImage';
 import { useEffect } from 'react';
 import type { TrackedCard } from '@/types';
 
@@ -49,26 +49,26 @@ export function ImagePopup({ card, onClose, onEdit }: ImagePopupProps) {
             <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
         </button>
-        <Image
+        <TcgAssetImage
           src={card.imageLarge}
+          kind="card-large"
           alt={card.name}
           width={420}
           height={588}
           className="w-full h-auto rounded-lg shadow-2xl"
-          unoptimized
           priority
         />
         <div className="mt-3 text-center">
           <p className="text-sm font-semibold text-zinc-100">{card.name}</p>
           <div className="flex items-center justify-center gap-1 text-xs text-zinc-500">
             {card.setSymbol && (
-              <Image
+              <TcgAssetImage
                 src={card.setSymbol}
+                kind="set-symbol"
                 alt=""
                 width={13}
                 height={13}
                 className="w-[13px] h-[13px] object-contain opacity-60"
-                unoptimized
               />
             )}
             <span>{card.setId.toUpperCase()}-{card.number.padStart(3, '0')} · {card.setName}</span>

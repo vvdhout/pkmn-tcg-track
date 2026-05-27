@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
+import { TcgAssetImage } from '@/components/cards/TcgAssetImage';
 import type { TcgCard } from '@/types';
 import { searchCards, findCards, type SearchOptions } from '@/services/pokemonTcg';
 import { useAppContext } from '@/context/AppContext';
@@ -200,13 +200,13 @@ export function CardScanner({ onSelect, onSelectMultiple, onBack, formatIds, pen
                 {selected ? (
                   /* Selected — show thumbnail + set info */
                   <>
-                    <Image
+                    <TcgAssetImage
                       src={selected.images.small}
+                      kind="card-small"
                       alt={selected.name}
                       width={32}
                       height={44}
                       className="w-8 h-11 rounded object-cover flex-shrink-0"
-                      unoptimized
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-1.5 min-w-0">
@@ -217,13 +217,13 @@ export function CardScanner({ onSelect, onSelectMultiple, onBack, formatIds, pen
                       </div>
                       <div className="flex items-center gap-1 text-[11px] text-zinc-500 truncate">
                         {selected.set.images?.symbol && (
-                          <Image
+                          <TcgAssetImage
                             src={selected.set.images.symbol}
+                            kind="set-symbol"
                             alt=""
                             width={11}
                             height={11}
                             className="w-[11px] h-[11px] object-contain opacity-60 flex-shrink-0"
-                            unoptimized
                           />
                         )}
                         <span className="truncate">
@@ -368,6 +368,7 @@ function ScanResultsSearch({
   const [cards, setCards] = useState<TcgCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
+  const formatKey = options.formatIds?.join(',') ?? '';
 
   useEffect(() => {
     const q = query.trim();
@@ -385,7 +386,7 @@ function ScanResultsSearch({
     }, 350);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
+  }, [query, options.sortOrder, formatKey]);
 
   useEffect(() => {
     if (!initialQuery.trim()) return;
@@ -395,7 +396,7 @@ function ScanResultsSearch({
       .catch(() => setCards([]))
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [options.sortOrder, formatKey]);
 
   return (
     <>
@@ -506,25 +507,25 @@ function ScanSearchResult({
       className="flex items-center gap-3 px-4 py-3 border-b border-app-border active:bg-app-elevated touch-manipulation"
       onClick={() => onImageClick(card)}
     >
-      <Image
+      <TcgAssetImage
         src={card.images.small}
+        kind="card-small"
         alt={card.name}
         width={36}
         height={50}
         className="w-9 h-[50px] rounded object-cover flex-shrink-0"
-        unoptimized
       />
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
         <p className="text-sm font-medium text-zinc-100 truncate">{card.name}</p>
         <div className="flex items-center gap-1 text-[11px] text-zinc-500 truncate">
           {card.set.images?.symbol && (
-            <Image
+            <TcgAssetImage
               src={card.set.images.symbol}
+              kind="set-symbol"
               alt=""
               width={13}
               height={13}
               className="w-[13px] h-[13px] object-contain opacity-60 flex-shrink-0"
-              unoptimized
             />
           )}
           <span className="truncate">
@@ -618,26 +619,26 @@ function ScanImagePopup({
             <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
         </button>
-        <Image
+        <TcgAssetImage
           src={card.images.large}
+          kind="card-large"
           alt={card.name}
           width={420}
           height={588}
           className="w-full h-auto rounded-lg shadow-2xl"
-          unoptimized
           priority
         />
         <div className="mt-3 text-center">
           <p className="text-sm font-semibold text-zinc-100">{card.name}</p>
           <div className="flex items-center justify-center gap-1 text-xs text-zinc-500">
             {card.set.images?.symbol && (
-              <Image
+              <TcgAssetImage
                 src={card.set.images.symbol}
+                kind="set-symbol"
                 alt=""
                 width={13}
                 height={13}
                 className="w-[13px] h-[13px] object-contain opacity-60"
-                unoptimized
               />
             )}
             <span>{card.set.id.toUpperCase()}-{card.number.padStart(3, '0')} · {card.set.name}</span>

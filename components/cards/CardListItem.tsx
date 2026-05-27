@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { TcgAssetImage } from '@/components/cards/TcgAssetImage';
 import type { TrackedCard } from '@/types';
 
 interface CardListItemProps {
@@ -39,13 +39,13 @@ export function CardListItem({
         onClick={() => onImageClick(card)}
         aria-label={`View ${card.name}`}
       >
-        <Image
+        <TcgAssetImage
           src={card.imageSmall}
+          kind="card-small"
           alt={card.name}
           width={40}
           height={56}
           className="w-full h-full object-cover"
-          unoptimized
         />
       </button>
 
@@ -61,13 +61,13 @@ export function CardListItem({
           <div className="flex items-center gap-1.5">
             <span className="inline-flex items-center gap-1">
               {card.setSymbol && (
-                <Image
+                <TcgAssetImage
                   src={card.setSymbol}
+                  kind="set-symbol"
                   alt=""
                   width={14}
                   height={14}
                   className="w-3.5 h-3.5 object-contain opacity-60"
-                  unoptimized
                 />
               )}
               <span className="text-[11px] text-zinc-500 font-mono">

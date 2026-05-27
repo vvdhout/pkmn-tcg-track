@@ -1,6 +1,27 @@
-import type { AppState } from '@/types';
+import type { AppState, TrackedCard } from '@/types';
+import { fixStoredCardImageUrl, fixStoredSymbolUrl } from '@/services/tcgAssets';
 
 const KEY = 'pkmn-tcg-track-v1';
+
+function migrateCard(card: TrackedCard): TrackedCard {
+  return {
+    ...card,
+    setSymbol: fixStoredSymbolUrl(card.setSymbol),
+    imageSmall: fixStoredCardImageUrl(card.imageSmall) ?? card.imageSmall,
+    imageLarge: fixStoredCardImageUrl(card.imageLarge) ?? card.imageLarge,
+  };
+}
+
+function migrateState(state: AppState): AppState {
+  return {
+    ...state,
+    decks: state.decks.map((d) => ({
+      ...d,
+      cards: d.cards.map(migrateCard),
+    })),
+    standaloneCards: state.standaloneCards.map(migrateCard),
+  };
+}
 
 const DEFAULT: AppState = {
   decks: [],
@@ -14,7 +35,7 @@ export function loadState(): AppState {
     const raw = localStorage.getItem(KEY);
     if (!raw) return DEFAULT;
     const parsed = JSON.parse(raw) as Partial<AppState>;
-    return { ...DEFAULT, ...parsed };
+    return migrateState({ ...DEFAULT, ...parsed });
   } catch {
     return DEFAULT;
   }

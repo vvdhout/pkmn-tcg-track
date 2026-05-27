@@ -100,5 +100,16 @@ export type AppAction =
   | { type: 'RESET_COLLECTED'; deckId: string | null }
   | { type: 'MOVE_TO_STANDALONE'; deckId: string; tcgId: string }
   | { type: 'UPDATE_SETTINGS'; settings: Partial<AppSettings> }
-  | { type: 'UPDATE_CARD_PRICES'; updates: { tcgId: string; lowPrice?: number; avg30?: number }[]; timestamp: number }
+  | {
+      type: 'UPDATE_CARD_PRICES';
+      updates: {
+        tcgId: string;
+        lowPrice?: number;
+        avg30?: number;
+        imageSmall?: string;
+        imageLarge?: string;
+        setSymbol?: string;
+      }[];
+      timestamp: number;
+    }
   | { type: 'SET_DECK_FORMAT'; deckId: string; format: string | null };

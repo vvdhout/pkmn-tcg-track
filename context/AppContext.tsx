@@ -145,13 +145,18 @@ function reducer(state: AppState, action: AppAction): AppState {
       return { ...state, settings: { ...state.settings, ...action.settings } };
 
     case 'UPDATE_CARD_PRICES': {
-      const priceMap = new Map(
-        action.updates.map((u) => [u.tcgId, { lowPrice: u.lowPrice, avg30: u.avg30 }]),
-      );
+      const priceMap = new Map(action.updates.map((u) => [u.tcgId, u]));
       const applyPrices = (c: TrackedCard) => {
         const p = priceMap.get(c.tcgId);
         if (!p) return c;
-        return { ...c, cardmarketLowPrice: p.lowPrice, cardmarketAvg30: p.avg30 };
+        return {
+          ...c,
+          ...(p.lowPrice != null ? { cardmarketLowPrice: p.lowPrice } : {}),
+          ...(p.avg30 != null ? { cardmarketAvg30: p.avg30 } : {}),
+          ...(p.imageSmall ? { imageSmall: p.imageSmall } : {}),
+          ...(p.imageLarge ? { imageLarge: p.imageLarge } : {}),
+          ...(p.setSymbol ? { setSymbol: p.setSymbol } : {}),
+        };
       };
       return {
         ...state,
@@ -200,19 +205,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const staleAfter = 24 * 60 * 60 * 1000;
     const age = Date.now() - (loaded.pricesLastUpdated ?? 0);
-    if (age > staleAfter) {
-      const ids = [
-        ...loaded.standaloneCards,
-        ...loaded.decks.flatMap((d) => d.cards),
-      ].map((c) => c.tcgId);
-      const uniqueIds = [...new Set(ids)];
-      if (uniqueIds.length > 0) {
-        refreshCardPrices(uniqueIds).then((updates) => {
+    const allCards = [
+      ...loaded.standaloneCards,
+      ...loaded.decks.flatMap((d) => d.cards),
+    ];
+    const uniqueIds = [...new Set(allCards.map((c) => c.tcgId))];
+    const needsAssetRefresh =
+      uniqueIds.length > 0 &&
+      (age > staleAfter || allCards.some((c) => !c.imageSmall || !c.setSymbol));
+
+    if (needsAssetRefresh) {
+      refreshCardPrices(uniqueIds).then((updates) => {
           if (updates.length > 0) {
-            dispatch({ type: 'UPDATE_CARD_PRICES', updates, timestamp: Date.now() });
-          }
-        });
-      }
+          dispatch({ type: 'UPDATE_CARD_PRICES', updates, timestamp: Date.now() });
+        }
+      });
     }
   }, []);
 

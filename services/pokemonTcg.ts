@@ -1,5 +1,12 @@
 import type { TcgCard, TcgSet } from '@/types';
 import { getFormat } from '@/services/formats';
+import {
+  fetchSetMeta,
+  getSetReleaseDate,
+  prefetchSetMeta,
+  resolveCardImageUrls,
+  resolveSymbolUrl,
+} from '@/services/tcgAssets';
 
 const BASE_URL = 'https://api.tcgdex.net/v2/en';
 const HYDRATE_CONCURRENCY = 6;
@@ -145,15 +152,18 @@ function cardmarketUrl(
   return slugPath;
 }
 
-function mapCard(raw: TcgDexCard): TcgCard | null {
+function mapCard(
+  raw: TcgDexCard,
+  images: { small: string; large: string },
+): TcgCard | null {
   const set = raw.set;
   if (!set?.id) return null;
 
   const cm = raw.pricing?.cardmarket ?? undefined;
   const prices = cardmarketPrices(cm);
-  const imageBase = raw.image ?? '';
   const rawCat = raw.category ?? '';
   const supertype = rawCat === 'Pokemon' ? 'Pokémon' : rawCat;
+  const symbol = resolveSymbolUrl(set.symbol);
 
   return {
     id: raw.id,
@@ -167,12 +177,9 @@ function mapCard(raw: TcgDexCard): TcgCard | null {
       releaseDate: set.releaseDate?.replace(/-/g, '/') ?? '',
       printedTotal: set.cardCount?.official ?? 0,
       total: set.cardCount?.total ?? 0,
-      images: set.symbol ? { symbol: set.symbol } : undefined,
+      images: symbol ? { symbol } : undefined,
     },
-    images: {
-      small: imageBase ? `${imageBase}/low.webp` : '',
-      large: imageBase ? `${imageBase}/high.webp` : '',
-    },
+    images,
     cardmarket: {
       url: cardmarketUrl(raw, cm),
       prices,
@@ -180,11 +187,44 @@ function mapCard(raw: TcgDexCard): TcgCard | null {
   };
 }
 
+function compareCardsByRelease(
+  a: { setId: string; localId: string; releaseDate?: string },
+  b: { setId: string; localId: string; releaseDate?: string },
+  order: 'asc' | 'desc',
+): number {
+  const da = a.releaseDate || getSetReleaseDate(a.setId);
+  const db = b.releaseDate || getSetReleaseDate(b.setId);
+  let cmp = da.localeCompare(db);
+  if (cmp !== 0) return order === 'desc' ? -cmp : cmp;
+  cmp = a.setId.localeCompare(b.setId);
+  if (cmp !== 0) return cmp;
+  return a.localId.localeCompare(b.localId, undefined, { numeric: true });
+}
+
 function clientSort(cards: TcgCard[], order: 'asc' | 'desc'): TcgCard[] {
-  return [...cards].sort((a, b) => {
-    const cmp = a.set.releaseDate.localeCompare(b.set.releaseDate);
-    return order === 'desc' ? -cmp : cmp;
-  });
+  return [...cards].sort((a, b) =>
+    compareCardsByRelease(
+      { setId: a.set.id, localId: a.number, releaseDate: a.set.releaseDate },
+      { setId: b.set.id, localId: b.number, releaseDate: b.set.releaseDate },
+      order,
+    ),
+  );
+}
+
+async function sortBriefsByReleaseDate(
+  briefs: TcgDexCardBrief[],
+  order: 'asc' | 'desc',
+  signal?: AbortSignal,
+): Promise<TcgDexCardBrief[]> {
+  if (briefs.length <= 1) return briefs;
+  await prefetchSetMeta(briefs.map((b) => setIdFromBrief(b)), signal);
+  return [...briefs].sort((a, b) =>
+    compareCardsByRelease(
+      { setId: setIdFromBrief(a), localId: a.localId ?? '' },
+      { setId: setIdFromBrief(b), localId: b.localId ?? '' },
+      order,
+    ),
+  );
 }
 
 function filterByFormat(cards: TcgCard[], allowedSetIds: string[] | null): TcgCard[] {
@@ -224,7 +264,7 @@ async function hydrateCards(
     const batch = await Promise.all(
       chunk.map(async (brief) => {
         try {
-          return await getCard(brief.id, signal);
+          return await getCard(brief.id, signal, brief.image);
         } catch {
           return null;
         }
@@ -253,7 +293,7 @@ export async function fetchSets(signal?: AbortSignal): Promise<TcgSet[]> {
     series: s.serie?.name ?? '',
     releaseDate: s.releaseDate?.replace(/-/g, '/') ?? '',
     printedTotal: s.cardCount?.official ?? 0,
-    images: s.symbol ? { symbol: s.symbol } : undefined,
+    images: s.symbol ? { symbol: resolveSymbolUrl(s.symbol) } : undefined,
   }));
   return _setCache;
 }
@@ -273,15 +313,20 @@ async function resolveFormatFilter(
 
   try {
     const sets = await fetchSets(signal);
+    await prefetchSetMeta(
+      sets.map((s) => s.id),
+      signal,
+    );
     const matchingIds = new Set<string>();
     for (const formatId of formatIds) {
       const format = getFormat(formatId);
       if (!format) continue;
       for (const set of sets) {
-        if (!set.releaseDate) continue;
+        const releaseDate = getSetReleaseDate(set.id) || set.releaseDate;
+        if (!releaseDate) continue;
         if (
-          (!format.fromDate || set.releaseDate >= format.fromDate) &&
-          (!format.toDate || set.releaseDate <= format.toDate)
+          (!format.fromDate || releaseDate >= format.fromDate) &&
+          (!format.toDate || releaseDate <= format.toDate)
         ) {
           matchingIds.add(set.id);
         }
@@ -296,12 +341,33 @@ async function resolveFormatFilter(
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-export async function getCard(id: string, signal?: AbortSignal): Promise<TcgCard> {
+export async function getCard(
+  id: string,
+  signal?: AbortSignal,
+  briefImage?: string,
+): Promise<TcgCard> {
   const res = await fetch(`${BASE_URL}/cards/${encodeURIComponent(id)}`, signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
   const json = (await res.json()) as TcgDexCard;
-  const card = mapCard(json);
+  const images = await resolveCardImageUrls(
+    {
+      apiImage: json.image,
+      briefImage,
+      setId: json.set?.id,
+      localId: json.localId,
+    },
+    signal,
+  );
+  let card = mapCard(json, images);
   if (!card) throw new Error(`Card ${id} has no set data`);
+
+  if (!card.set.releaseDate) {
+    const meta = await fetchSetMeta(card.set.id, signal);
+    if (meta?.releaseDate) {
+      card = { ...card, set: { ...card.set, releaseDate: meta.releaseDate } };
+    }
+  }
+
   return card;
 }
 
@@ -326,8 +392,10 @@ export async function searchCards(
     signal,
   );
 
-  const filteredBriefs = filterBriefsByFormat(briefs, allowedSetIds).slice(0, SEARCH_PAGE_SIZE);
-  const cards = filterByFormat(await hydrateCards(filteredBriefs, signal), allowedSetIds);
+  const filteredBriefs = filterBriefsByFormat(briefs, allowedSetIds);
+  const sortedBriefs = await sortBriefsByReleaseDate(filteredBriefs, sortOrder, signal);
+  const limitedBriefs = sortedBriefs.slice(0, SEARCH_PAGE_SIZE);
+  const cards = filterByFormat(await hydrateCards(limitedBriefs, signal), allowedSetIds);
 
   return clientSort(cards, sortOrder);
 }
@@ -348,7 +416,8 @@ export async function findCards(
   const sortOrder = options?.sortOrder ?? 'asc';
 
   async function finish(briefs: TcgDexCardBrief[]): Promise<TcgCard[]> {
-    const limited = briefs.slice(0, SEARCH_PAGE_SIZE);
+    const sorted = await sortBriefsByReleaseDate(briefs, sortOrder, signal);
+    const limited = sorted.slice(0, SEARCH_PAGE_SIZE);
     const cards = filterByFormat(await hydrateCards(limited, signal), allowedSetIds);
     return clientSort(cards, sortOrder);
   }
@@ -417,9 +486,25 @@ export async function findCards(
 
 export async function refreshCardPrices(
   ids: string[],
-): Promise<{ tcgId: string; lowPrice?: number; avg30?: number }[]> {
+): Promise<
+  {
+    tcgId: string;
+    lowPrice?: number;
+    avg30?: number;
+    imageSmall?: string;
+    imageLarge?: string;
+    setSymbol?: string;
+  }[]
+> {
   const unique = [...new Set(ids)];
-  const updates: { tcgId: string; lowPrice?: number; avg30?: number }[] = [];
+  const updates: {
+    tcgId: string;
+    lowPrice?: number;
+    avg30?: number;
+    imageSmall?: string;
+    imageLarge?: string;
+    setSymbol?: string;
+  }[] = [];
 
   for (let i = 0; i < unique.length; i += HYDRATE_CONCURRENCY) {
     const chunk = unique.slice(i, i + HYDRATE_CONCURRENCY);
@@ -432,6 +517,9 @@ export async function refreshCardPrices(
             tcgId,
             lowPrice: prices?.lowPrice,
             avg30: prices?.avg30,
+            imageSmall: card.images.small || undefined,
+            imageLarge: card.images.large || undefined,
+            setSymbol: card.set.images?.symbol,
           };
         } catch {
           return null;
@@ -439,7 +527,14 @@ export async function refreshCardPrices(
       }),
     );
     for (const row of batch) {
-      if (row && (row.lowPrice != null || row.avg30 != null)) {
+      if (!row) continue;
+      if (
+        row.lowPrice != null ||
+        row.avg30 != null ||
+        row.imageSmall ||
+        row.imageLarge ||
+        row.setSymbol
+      ) {
         updates.push(row);
       }
     }

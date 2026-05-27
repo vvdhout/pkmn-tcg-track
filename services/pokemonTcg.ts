@@ -1,6 +1,7 @@
 import type { TcgCard, TcgSet } from '@/types';
 import { getFormat } from '@/services/formats';
 import {
+  buildCardmarketProductUrl,
   fetchSetMeta,
   getSetReleaseDate,
   prefetchSetMeta,
@@ -160,10 +161,7 @@ function cardmarketUrl(
   const set = raw.set;
   if (!set?.name) return undefined;
   const slugPath = `https://www.cardmarket.com/en/Pokemon/Products/Singles/${toCardmarketSlug(set.name)}/${toCardmarketSlug(raw.name)}`;
-  if (cm?.idProduct != null) {
-    return `${slugPath}?idProduct=${cm.idProduct}`;
-  }
-  return slugPath;
+  return buildCardmarketProductUrl(slugPath, cm?.idProduct);
 }
 
 function mapCard(

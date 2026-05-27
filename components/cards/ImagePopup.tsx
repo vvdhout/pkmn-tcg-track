@@ -1,6 +1,7 @@
 'use client';
 
 import { TcgAssetImage } from '@/components/cards/TcgAssetImage';
+import { cardmarketLinkHref } from '@/services/tcgAssets';
 import { useEffect } from 'react';
 import type { TrackedCard } from '@/types';
 
@@ -75,9 +76,7 @@ export function ImagePopup({ card, onClose, onEdit }: ImagePopupProps) {
           </div>
           {(card.cardmarketLowPrice != null || card.cardmarketAvg30 != null) && (
             <PriceLink
-              href={card.cardmarketUrl
-                ? `${card.cardmarketUrl}?language=1&minCondition=4`
-                : undefined}
+              href={cardmarketLinkHref(card.cardmarketUrl)}
               low={card.cardmarketLowPrice}
               avg30={card.cardmarketAvg30}
             />

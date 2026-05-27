@@ -1,6 +1,35 @@
 const ASSETS_BASE = 'https://assets.tcgdex.net';
 const SET_API = 'https://api.tcgdex.net/v2/en/sets';
 
+/** Cardmarket link defaults: English listings, Excellent or better. */
+const CARDMARKET_LINK_PARAMS = {
+  language: '1',
+  minCondition: '4',
+} as const;
+
+/** Append language + minCondition, preserving any existing query (e.g. idProduct). */
+export function cardmarketLinkHref(url?: string): string | undefined {
+  if (!url) return undefined;
+
+  const qIndex = url.indexOf('?');
+  const base = qIndex === -1 ? url : url.slice(0, qIndex);
+  const params = new URLSearchParams(qIndex === -1 ? '' : url.slice(qIndex + 1));
+  params.set('language', CARDMARKET_LINK_PARAMS.language);
+  params.set('minCondition', CARDMARKET_LINK_PARAMS.minCondition);
+  return `${base}?${params.toString()}`;
+}
+
+export function buildCardmarketProductUrl(
+  slugPath: string,
+  idProduct?: number,
+): string {
+  const params = new URLSearchParams();
+  params.set('language', CARDMARKET_LINK_PARAMS.language);
+  params.set('minCondition', CARDMARKET_LINK_PARAMS.minCondition);
+  if (idProduct != null) params.set('idProduct', String(idProduct));
+  return `${slugPath}?${params.toString()}`;
+}
+
 export interface SetMeta {
   serieId?: string;
   releaseDate: string; // YYYY/MM/DD

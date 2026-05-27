@@ -1,6 +1,7 @@
 'use client';
 
 import { TcgAssetImage } from '@/components/cards/TcgAssetImage';
+import { cardmarketLinkHref } from '@/services/tcgAssets';
 import type { TrackedCard } from '@/types';
 
 interface CardListItemProps {
@@ -21,9 +22,7 @@ export function CardListItem({
   onIncrement,
 }: CardListItemProps) {
   const isComplete = card.collected >= card.needed;
-  const cmHref = card.cardmarketUrl
-    ? `${card.cardmarketUrl}?language=1&minCondition=4`
-    : undefined;
+  const cmHref = cardmarketLinkHref(card.cardmarketUrl);
 
   return (
     <div

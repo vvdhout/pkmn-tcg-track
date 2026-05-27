@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { TcgAssetImage } from '@/components/cards/TcgAssetImage';
+import { cardmarketLinkHref } from '@/services/tcgAssets';
 import type { TcgCard } from '@/types';
 import { findCards, type SearchOptions } from '@/services/pokemonTcg';
 import { usePokemonSearch } from '@/hooks/usePokemonSearch';
@@ -484,9 +485,7 @@ function ScanSearchResult({
       ? prices.lowPriceExPlus
       : prices?.lowPrice;
   const avg30 = prices?.avg30;
-  const cmHref = card.cardmarket?.url
-    ? `${card.cardmarket.url}?language=1&minCondition=4`
-    : undefined;
+  const cmHref = cardmarketLinkHref(card.cardmarket?.url);
   const priceText = [
     lowPrice != null ? `€${lowPrice.toFixed(2)}` : null,
     avg30 != null ? `€${avg30.toFixed(2)}` : null,
@@ -586,9 +585,7 @@ function ScanImagePopup({
       ? prices.lowPriceExPlus
       : prices?.lowPrice;
   const avg30 = prices?.avg30;
-  const cmHref = card.cardmarket?.url
-    ? `${card.cardmarket.url}?language=1&minCondition=4`
-    : undefined;
+  const cmHref = cardmarketLinkHref(card.cardmarket?.url);
   const priceText = [
     lowPrice != null ? `€${lowPrice.toFixed(2)}` : null,
     avg30 != null ? `€${avg30.toFixed(2)}` : null,

@@ -4,7 +4,7 @@ import { TcgAssetImage } from '@/components/cards/TcgAssetImage';
 import { cardmarketLinkHref } from '@/services/tcgAssets';
 import { useState, useEffect, useRef } from 'react';
 import { usePokemonSearch } from '@/hooks/usePokemonSearch';
-import { getFormat } from '@/services/formats';
+import { formatFilterLabel } from '@/services/formats';
 import { FormatPicker } from '@/components/formats/FormatPicker';
 import type { TcgCard } from '@/types';
 import { CardScanner } from './CardScanner';
@@ -60,13 +60,10 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
   const [showFormatPicker, setShowFormatPicker] = useState(false);
   const filtered = results.filter((c) => !excludeIds.includes(c.id));
 
-  const hasFormatRow = onChangeFormatIds !== undefined || (!!formatIds && formatIds.length > 0);
-  const formatLabel =
-    formatIds && formatIds.length > 0
-      ? formatIds.length < 4
-        ? formatIds.map((id) => getFormat(id)?.name ?? id).join(' · ')
-        : `${formatIds.length} formats`
-      : 'All sets';
+  const formatEditable = onChangeFormatIds !== undefined;
+  const showFormatBar =
+    formatEditable || (!!formatIds && formatIds.length > 0);
+  const formatLabel = formatFilterLabel(formatIds);
 
   if (mode === 'scan') {
     return (
@@ -131,33 +128,48 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
         </button>
       </div>
 
-      {/* Format indicator row */}
-      {hasFormatRow && (
-        <div className="flex-shrink-0 px-4 py-2 flex items-center gap-2 border-b border-app-border">
-          {onChangeFormatIds ? (
-            <>
-              <button
-                onClick={() => setShowFormatPicker(true)}
-                className="flex items-center gap-1 touch-manipulation"
-              >
-                <span className={`text-[11px] ${formatIds && formatIds.length > 0 ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                  {formatLabel}
-                </span>
-                <ChevronDownIcon />
-              </button>
-              {formatIds && formatIds.length > 0 && (
+      {/* Format filter — below search input */}
+      {showFormatBar && (
+        <div className="flex-shrink-0 px-3 py-2.5 border-b border-app-border">
+          <p className="text-[10px] font-bold tracking-widest text-zinc-600 uppercase mb-1.5">
+            Format filter
+          </p>
+          <div className="flex items-center gap-2">
+            {formatEditable ? (
+              <>
                 <button
-                  onClick={() => onChangeFormatIds([])}
-                  className="text-zinc-600 active:text-zinc-400 touch-manipulation leading-none text-base"
-                  aria-label="Clear format filter"
+                  type="button"
+                  onClick={() => setShowFormatPicker(true)}
+                  className="flex-1 min-w-0 flex items-center justify-between gap-2 px-2.5 py-2 rounded border border-app-border bg-app-elevated active:bg-app-muted touch-manipulation"
+                  aria-label="Change format filter"
                 >
-                  ×
+                  <span
+                    className={`text-xs truncate ${
+                      formatIds && formatIds.length > 0 ? 'text-zinc-200' : 'text-zinc-500'
+                    }`}
+                  >
+                    {formatLabel}
+                  </span>
+                  <ChevronDownIcon />
                 </button>
-              )}
-            </>
-          ) : (
-            <span className="text-[11px] text-zinc-500">{formatLabel}</span>
-          )}
+                {formatIds && formatIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onChangeFormatIds([])}
+                    className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded border border-app-border text-zinc-500 active:bg-app-muted touch-manipulation"
+                    aria-label="Clear format filter"
+                  >
+                    ×
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-zinc-500 leading-snug">
+                <span className="text-zinc-600">List format · </span>
+                {formatLabel}
+              </p>
+            )}
+          </div>
         </div>
       )}
 

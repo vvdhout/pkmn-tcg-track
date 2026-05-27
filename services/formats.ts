@@ -124,3 +124,11 @@ export const FORMATS: Format[] = [
 export function getFormat(id: string): Format | undefined {
   return FORMATS.find((f) => f.id === id);
 }
+
+export function formatFilterLabel(formatIds: string[] | undefined): string {
+  if (!formatIds || formatIds.length === 0) return 'All sets';
+  if (formatIds.length < 4) {
+    return formatIds.map((id) => getFormat(id)?.name ?? id).join(' · ');
+  }
+  return `${formatIds.length} formats`;
+}

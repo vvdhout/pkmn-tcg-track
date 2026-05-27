@@ -4,8 +4,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { CardSearch } from '@/components/cards/CardSearch';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
-import { FormatPicker } from '@/components/formats/FormatPicker';
-import { getFormat } from '@/services/formats';
 import { mapToTracked } from '@/services/pokemonTcg';
 import type { TcgCard } from '@/types';
 
@@ -16,7 +14,6 @@ export default function SearchPage() {
   const { state, dispatch } = useAppContext();
   const [pending, setPending] = useState<Pending | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [showFormatPicker, setShowFormatPicker] = useState(false);
   const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
   const [pendingImage, setPendingImage] = useState<NavImage | null>(null);
   const [toast, setToast] = useState<{ message: string; id: number } | null>(null);
@@ -79,13 +76,6 @@ export default function SearchPage() {
     ? `Add "${pending[0].card.name}"`
     : '';
 
-  const formatLabel =
-    selectedFormats.length === 0
-      ? 'All sets'
-      : selectedFormats.length < 4
-      ? selectedFormats.map((id) => getFormat(id)?.name ?? id).join(' · ')
-      : `${selectedFormats.length} formats`;
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
@@ -100,33 +90,12 @@ export default function SearchPage() {
         </button>
       </div>
 
-      {/* Format filter — minimal */}
-      <div className="flex-shrink-0 px-4 pb-3 flex items-center gap-2">
-        <button
-          onClick={() => setShowFormatPicker(true)}
-          className="flex items-center gap-1 touch-manipulation"
-        >
-          <span className={`text-[11px] ${selectedFormats.length > 0 ? 'text-zinc-400' : 'text-zinc-600'}`}>
-            {formatLabel}
-          </span>
-          <ChevronDownIcon />
-        </button>
-        {selectedFormats.length > 0 && (
-          <button
-            onClick={() => setSelectedFormats([])}
-            className="text-zinc-600 active:text-zinc-400 touch-manipulation leading-none text-base"
-            aria-label="Clear format filter"
-          >
-            ×
-          </button>
-        )}
-      </div>
-
       <div className="flex-1 min-h-0" style={{ paddingBottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}>
         <CardSearch
           onSelect={handleSelect}
           onSelectMultiple={handleSelectMultiple}
           formatIds={selectedFormats.length > 0 ? selectedFormats : undefined}
+          onChangeFormatIds={setSelectedFormats}
           pendingImage={pendingImage}
         />
       </div>
@@ -179,15 +148,6 @@ export default function SearchPage() {
         </div>
       )}
 
-      {showFormatPicker && (
-        <FormatPicker
-          multiSelect
-          selectedFormatIds={selectedFormats}
-          onApply={(ids) => setSelectedFormats(ids)}
-          onClose={() => setShowFormatPicker(false)}
-        />
-      )}
-
       {/* Settings panel */}
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
 
@@ -224,10 +184,3 @@ function GearIcon() {
   );
 }
 
-function ChevronDownIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-zinc-600 flex-shrink-0">
-      <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}

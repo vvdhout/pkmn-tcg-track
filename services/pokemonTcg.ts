@@ -185,27 +185,60 @@ export async function searchCards(
   const allowedSetIds = await resolveFormatFilter(options?.formatIds, signal);
   if (allowedSetIds !== null && allowedSetIds.length === 0) return [];
 
-  // Fetch more when we'll be filtering client-side so the visible result
-  // count doesn't shrink too aggressively.
-  // When a format filter is active, fetch newest-first with more results so
-  // recent sets (Standard, etc.) appear in the fetch window before we filter.
-  const pageSize = allowedSetIds ? 100 : 20;
-  const sortOrder = allowedSetIds ? 'Desc' : (options?.sortOrder === 'desc' ? 'Desc' : 'Asc');
-  // Use manual URL construction so ':' stays literal (URLSearchParams encodes it as %3A)
-  const url = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&pagination:page=${page}&pagination:itemsPerPage=${pageSize}&sort:field=set.releaseDate&sort:order=${sortOrder}`;
+  const sortOrder = options?.sortOrder === 'desc' ? 'Desc' : 'Asc';
 
+  if (allowedSetIds) {
+    // Pass the matching set IDs directly to TCGdex so the API does the filtering.
+    // TCGdex interprets repeated set.id params as OR — cards from any of those sets.
+    // Cap at 60 set IDs to keep URL sane (Expanded has 150+ sets; beyond 60 fall
+    // back to a broad fetch + client-side filter).
+    const useServerFilter = allowedSetIds.length <= 60;
+    let cards: TcgCard[];
+
+    if (useServerFilter) {
+      const setParams = allowedSetIds.map((id) => `set.id=${id}`).join('&');
+      const url = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&${setParams}&pagination:page=${page}&pagination:itemsPerPage=250&sort:field=set.releaseDate&sort:order=${sortOrder}`;
+      const res = await fetch(url, signal ? { signal } : undefined);
+      if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
+      const json = await res.json();
+      const mapped = unwrap<TcgDexCard>(json).filter((r) => r?.set).map(mapCard);
+      // If TCGdex treated the repeated set.id params as AND (returns 0), fall back
+      // to an unfiltered fetch + client-side filter so results still appear.
+      if (mapped.length > 0) {
+        cards = mapped;
+      } else {
+        const fallbackUrl = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&pagination:page=${page}&pagination:itemsPerPage=500&sort:field=set.releaseDate&sort:order=${sortOrder}`;
+        const fb = await fetch(fallbackUrl, signal ? { signal } : undefined);
+        if (!fb.ok) throw new Error(`TCG API error: ${fb.status}`);
+        const fbJson = await fb.json();
+        const allowed = new Set(allowedSetIds);
+        cards = unwrap<TcgDexCard>(fbJson)
+          .filter((r) => r?.set)
+          .map(mapCard)
+          .filter((c) => c.set.id && allowed.has(c.set.id));
+      }
+    } else {
+      // Expanded / very large formats: fetch a big window and filter client-side
+      const url = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&pagination:page=${page}&pagination:itemsPerPage=500&sort:field=set.releaseDate&sort:order=${sortOrder}`;
+      const res = await fetch(url, signal ? { signal } : undefined);
+      if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
+      const json = await res.json();
+      const allowed = new Set(allowedSetIds);
+      cards = unwrap<TcgDexCard>(json)
+        .filter((r) => r?.set)
+        .map(mapCard)
+        .filter((c) => c.set.id && allowed.has(c.set.id));
+    }
+
+    return cards;
+  }
+
+  // No format filter: fetch 20 with user's sort preference
+  const url = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&pagination:page=${page}&pagination:itemsPerPage=20&sort:field=set.releaseDate&sort:order=${sortOrder}`;
   const res = await fetch(url, signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
   const json = await res.json();
-  // Filter out cards with no set (promo/special cards with incomplete TCGdex data)
-  let cards = unwrap<TcgDexCard>(json).filter((r) => r?.set).map(mapCard);
-
-  if (allowedSetIds) {
-    const allowed = new Set(allowedSetIds);
-    cards = cards.filter((c) => c.set.id && allowed.has(c.set.id));
-  }
-
-  return cards.slice(0, 20);
+  return unwrap<TcgDexCard>(json).filter((r) => r?.set).map(mapCard);
 }
 
 export async function getCard(id: string): Promise<TcgCard> {

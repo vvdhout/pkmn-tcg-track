@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { FORMATS, getFormat } from '@/services/formats';
 import { useAppContext } from '@/context/AppContext';
 import { FormatPicker } from '@/components/formats/FormatPicker';
+import { clearState, loadState } from '@/services/storage';
 
 type View = 'main' | 'pick-favorites';
 
@@ -13,6 +14,16 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
 
   const [view, setView] = useState<View>('main');
   const [showDefaultFormatPicker, setShowDefaultFormatPicker] = useState(false);
+
+  function handleResetLocalData() {
+    const ok = window.confirm(
+      'Delete all lists, cards, and settings on this device? This cannot be undone.',
+    );
+    if (!ok) return;
+    clearState();
+    dispatch({ type: 'LOAD', payload: loadState() });
+    onClose();
+  }
 
   /* ── Favorites picker view ── */
   if (view === 'pick-favorites') {
@@ -87,6 +98,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
+        <div className="flex-1 overflow-y-auto">
         {/* Default card filter */}
         <div className="px-4 py-5 border-b border-app-border">
           <p className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase mb-3">
@@ -161,6 +173,29 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Data on this device */}
+        <div className="px-4 py-5">
+          <p className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase mb-3">
+            Your data
+          </p>
+          <p className="text-[11px] text-zinc-500 leading-relaxed">
+            Lists, cards, and settings are saved on this device only (browser local storage).
+            We do not use cookies for that. There is no account and nothing is stored on our servers.
+          </p>
+          <p className="text-[11px] text-zinc-500 leading-relaxed mt-2.5">
+            If you use Analyze (photo or pasted list), that content is sent to our server and
+            Anthropic only for that request so we can read card names.
+          </p>
+          <button
+            type="button"
+            onClick={handleResetLocalData}
+            className="mt-4 w-full py-2.5 text-sm font-medium rounded border border-red-900/60 text-red-400 active:bg-red-950/40 touch-manipulation"
+          >
+            Delete all local data
+          </button>
+        </div>
         </div>
 
       </div>

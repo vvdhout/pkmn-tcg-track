@@ -12,19 +12,20 @@ export interface SearchOptions {
 
 interface TcgDexCard {
   id: string;
-  localId: string;
+  localId?: string;
   name: string;
   image?: string;
   category?: string;
   supertype?: string;
-  set: {
+  // Some promo/special cards have set: null in TCGdex
+  set?: {
     id: string;
     name: string;
     symbol?: string;
     releaseDate?: string;
     serie?: { id: string; name: string };
     cardCount?: { total: number; official: number };
-  };
+  } | null;
   cardmarket?: {
     url?: string;
     prices?: {
@@ -70,25 +71,27 @@ function toCardmarketSlug(s: string): string {
 function mapCard(raw: TcgDexCard): TcgCard {
   const prices = raw.cardmarket?.prices;
   const imageBase = raw.image ?? '';
-  // TCGdex uses "Pokemon" (no accent); normalise to match UI filter expectations
   const rawCat = raw.category ?? raw.supertype ?? '';
   const supertype = rawCat === 'Pokemon' ? 'Pokémon' : rawCat;
-  const cardmarketUrl =
-    `https://www.cardmarket.com/en/Pokemon/Products/Singles/${toCardmarketSlug(raw.set.name)}/${toCardmarketSlug(raw.name)}`;
+  // raw.set can be null for promo/special cards in TCGdex
+  const set = raw.set ?? null;
+  const cardmarketUrl = set
+    ? `https://www.cardmarket.com/en/Pokemon/Products/Singles/${toCardmarketSlug(set.name)}/${toCardmarketSlug(raw.name)}`
+    : undefined;
 
   return {
     id: raw.id,
     name: raw.name,
     supertype,
-    number: raw.localId,
+    number: raw.localId ?? '',
     set: {
-      id: raw.set.id,
-      name: raw.set.name,
-      series: raw.set.serie?.name ?? '',
-      releaseDate: raw.set.releaseDate?.replace(/-/g, '/') ?? '',
-      printedTotal: raw.set.cardCount?.official ?? 0,
-      total: raw.set.cardCount?.total ?? 0,
-      images: raw.set.symbol ? { symbol: raw.set.symbol } : undefined,
+      id: set?.id ?? '',
+      name: set?.name ?? '',
+      series: set?.serie?.name ?? '',
+      releaseDate: set?.releaseDate?.replace(/-/g, '/') ?? '',
+      printedTotal: set?.cardCount?.official ?? 0,
+      total: set?.cardCount?.total ?? 0,
+      images: set?.symbol ? { symbol: set.symbol } : undefined,
     },
     images: {
       small: imageBase ? `${imageBase}/low.webp` : '',
@@ -151,6 +154,8 @@ async function resolveFormatFilter(
       const format = getFormat(formatId);
       if (!format) continue;
       for (const set of sets) {
+        // Skip sets with no release date — can't determine format eligibility
+        if (!set.releaseDate) continue;
         if (
           (!format.fromDate || set.releaseDate >= format.fromDate) &&
           (!format.toDate   || set.releaseDate <= format.toDate)
@@ -159,6 +164,8 @@ async function resolveFormatFilter(
         }
       }
     }
+    // If nothing matched (e.g. all sets lack release dates), fall back to no filter
+    if (matchingIds.size === 0) return null;
     return [...matchingIds];
   } catch {
     return null;
@@ -180,19 +187,22 @@ export async function searchCards(
 
   // Fetch more when we'll be filtering client-side so the visible result
   // count doesn't shrink too aggressively.
-  const pageSize = allowedSetIds ? 60 : 20;
-  const sortOrder = options?.sortOrder === 'desc' ? 'Desc' : 'Asc';
+  // When a format filter is active, fetch newest-first with more results so
+  // recent sets (Standard, etc.) appear in the fetch window before we filter.
+  const pageSize = allowedSetIds ? 100 : 20;
+  const sortOrder = allowedSetIds ? 'Desc' : (options?.sortOrder === 'desc' ? 'Desc' : 'Asc');
   // Use manual URL construction so ':' stays literal (URLSearchParams encodes it as %3A)
   const url = `${BASE_URL}/cards?name=*${encodeURIComponent(query.trim())}*&pagination:page=${page}&pagination:itemsPerPage=${pageSize}&sort:field=set.releaseDate&sort:order=${sortOrder}`;
 
   const res = await fetch(url, signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`TCG API error: ${res.status}`);
   const json = await res.json();
-  let cards = unwrap<TcgDexCard>(json).map(mapCard);
+  // Filter out cards with no set (promo/special cards with incomplete TCGdex data)
+  let cards = unwrap<TcgDexCard>(json).filter((r) => r?.set).map(mapCard);
 
   if (allowedSetIds) {
     const allowed = new Set(allowedSetIds);
-    cards = cards.filter((c) => allowed.has(c.set.id));
+    cards = cards.filter((c) => c.set.id && allowed.has(c.set.id));
   }
 
   return cards.slice(0, 20);
@@ -237,10 +247,10 @@ export async function findCards(
     const res = await fetch(url);
     if (!res.ok) return [];
     const json = await res.json();
-    let cards = unwrap<TcgDexCard>(json).map(mapCard);
+    let cards = unwrap<TcgDexCard>(json).filter((r) => r?.set).map(mapCard);
     if (allowedSetIds) {
       const allowed = new Set(allowedSetIds);
-      cards = cards.filter((c) => allowed.has(c.set.id));
+      cards = cards.filter((c) => c.set.id && allowed.has(c.set.id));
     }
     return cards;
   }

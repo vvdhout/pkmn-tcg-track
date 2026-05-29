@@ -158,10 +158,11 @@ function cardmarketUrl(
   raw: TcgDexCard,
   cm: TcgDexCardmarketPricing | null | undefined,
 ): string | undefined {
+  if (!cm?.idProduct) return undefined;
   const set = raw.set;
   if (!set?.name) return undefined;
   const slugPath = `https://www.cardmarket.com/en/Pokemon/Products/Singles/${toCardmarketSlug(set.name)}/${toCardmarketSlug(raw.name)}`;
-  return buildCardmarketProductUrl(slugPath, cm?.idProduct);
+  return buildCardmarketProductUrl(slugPath, cm.idProduct);
 }
 
 function mapCard(

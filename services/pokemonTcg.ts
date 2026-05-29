@@ -143,7 +143,18 @@ function toCardmarketSlug(s: string): string {
     .replace(/[^a-zA-Z0-9 \-]/g, '')
     .trim()
     .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
+    .replace(/-+/g, '-')
+    .toLowerCase();
+}
+
+// Derives the Cardmarket set abbreviation used in card slugs (e.g. "Neo Genesis" → "NG").
+// Cardmarket uses the initials of each word, skipping non-alphabetic tokens like "&".
+function toCmSetCode(setName: string): string {
+  return setName
+    .split(/\s+/)
+    .filter((w) => /[a-zA-Z]/.test(w))
+    .map((w) => w[0].toUpperCase())
+    .join('');
 }
 
 function cardmarketPrices(cm: TcgDexCardmarketPricing | null | undefined) {
@@ -158,11 +169,11 @@ function cardmarketUrl(
   raw: TcgDexCard,
   cm: TcgDexCardmarketPricing | null | undefined,
 ): string | undefined {
-  if (!cm?.idProduct) return undefined;
   const set = raw.set;
   if (!set?.name) return undefined;
-  const slugPath = `https://www.cardmarket.com/en/Pokemon/Products/Singles/${toCardmarketSlug(set.name)}/${toCardmarketSlug(raw.name)}`;
-  return buildCardmarketProductUrl(slugPath, cm.idProduct);
+  const cardSlug = `${toCardmarketSlug(raw.name)}-${toCmSetCode(set.name)}${raw.localId ?? ''}`;
+  const slugPath = `https://www.cardmarket.com/en/Pokemon/Products/Singles/${toCardmarketSlug(set.name)}/${cardSlug}`;
+  return buildCardmarketProductUrl(slugPath, cm?.idProduct);
 }
 
 function mapCard(

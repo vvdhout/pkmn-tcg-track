@@ -58,7 +58,15 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
     if (pendingImage) setMode('scan');
   }, [pendingImage]);
   const [showFormatPicker, setShowFormatPicker] = useState(false);
-  const filtered = results.filter((c) => !excludeIds.includes(c.id));
+  const [typeFilter, setTypeFilter] = useState<'all' | 'pokemon' | 'trainer' | 'energy'>('all');
+
+  const filtered = results.filter((c) => {
+    if (excludeIds.includes(c.id)) return false;
+    if (typeFilter === 'pokemon') return c.supertype === 'Pokémon';
+    if (typeFilter === 'trainer') return c.supertype === 'Trainer';
+    if (typeFilter === 'energy') return c.supertype === 'Energy';
+    return true;
+  });
 
   const formatEditable = onChangeFormatIds !== undefined;
   const showFormatBar =
@@ -111,7 +119,7 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
           />
           {query && (
             <button
-              onClick={clear}
+              onClick={() => { clear(); setTypeFilter('all'); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 touch-manipulation"
             >
               ✕
@@ -170,6 +178,25 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
               </p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Type filter pills */}
+      {query && (
+        <div className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 border-b border-app-border overflow-x-auto scrollbar-none">
+          {(['all', 'pokemon', 'trainer', 'energy'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
+              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium border touch-manipulation transition-colors ${
+                typeFilter === t
+                  ? 'bg-zinc-700 border-zinc-600 text-zinc-100'
+                  : 'bg-transparent border-zinc-700 text-zinc-400'
+              }`}
+            >
+              {t === 'all' ? 'All' : t === 'pokemon' ? 'Pokémon' : t === 'trainer' ? 'Trainers' : 'Energy'}
+            </button>
+          ))}
         </div>
       )}
 

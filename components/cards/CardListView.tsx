@@ -4,10 +4,17 @@ import { useState } from 'react';
 import type { TrackedCard, CardFilter } from '@/types';
 import { useAppContext } from '@/context/AppContext';
 import { StatsBar } from './StatsBar';
-import { FilterTabs } from './FilterTabs';
+import { FilterTabs, type SortMode } from './FilterTabs';
 import { CardListItem } from './CardListItem';
 import { ImagePopup } from './ImagePopup';
 import { EditQuantityModal } from './EditQuantityModal';
+
+function cardRefPrice(card: TrackedCard): number {
+  const low = card.cardmarketLowPrice;
+  const avg30 = card.cardmarketAvg30;
+  if (low != null && avg30 != null) return (low + avg30) / 2;
+  return low ?? avg30 ?? 0;
+}
 
 interface CardListViewProps {
   cards: TrackedCard[];
@@ -38,7 +45,11 @@ function applyFilter(cards: TrackedCard[], filter: CardFilter): TrackedCard[] {
   }
 }
 
-function sortCards(cards: TrackedCard[]): TrackedCard[] {
+function sortCards(cards: TrackedCard[], sortMode: SortMode): TrackedCard[] {
+  if (sortMode === 'price-asc' || sortMode === 'price-desc') {
+    const dir = sortMode === 'price-asc' ? 1 : -1;
+    return [...cards].sort((a, b) => (cardRefPrice(a) - cardRefPrice(b)) * dir);
+  }
   const incomplete = cards.filter((c) => c.collected < c.needed);
   const complete = cards.filter((c) => c.collected >= c.needed);
   return [...incomplete, ...complete];
@@ -79,15 +90,15 @@ export function CardListView({
 }: CardListViewProps) {
   const { state, dispatch } = useAppContext();
   const [filter, setFilter] = useState<CardFilter>(state.settings.defaultCardFilter ?? 'all');
+  const [sortMode, setSortMode] = useState<SortMode>('default');
   const [popupCard, setPopupCard] = useState<TrackedCard | null>(null);
   const [editCardId, setEditCardId] = useState<string | null>(null);
   const editCard = editCardId ? (cards.find((c) => c.tcgId === editCardId) ?? null) : null;
 
   const filtered = applyFilter(cards, filter);
-  const sorted = sortCards(filtered);
-  const sections = ['all', 'missing', 'complete'].includes(filter)
-    ? groupByType(sorted)
-    : [{ label: '', cards: sorted }];
+  const sorted = sortCards(filtered, sortMode);
+  const useGroups = ['all', 'missing', 'complete'].includes(filter) && sortMode === 'default';
+  const sections = useGroups ? groupByType(sorted) : [{ label: '', cards: sorted }];
 
   // Available decks for "Add to deck" (standalone context) or deck label list
   const availableDecks = state.decks.map((d) => ({ id: d.id, name: d.name }));
@@ -114,7 +125,9 @@ export function CardListView({
         <FilterTabs
           active={filter}
           onChange={setFilter}
-          onReset={() => { onReset(); setFilter('all'); }}
+          onReset={() => { onReset(); setFilter('all'); setSortMode('default'); }}
+          sortMode={sortMode}
+          onSortChange={setSortMode}
         />
       </div>
 

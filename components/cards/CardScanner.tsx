@@ -114,12 +114,13 @@ export function CardScanner({ onSelect, onSelectMultiple, onBack, formatIds, pen
       return;
     }
 
-    // Auto-resolve cards that have exactly one match so the user only
-    // needs to choose versions for genuinely ambiguous cards.
+    // Auto-resolve cards that have exactly one version across the entire TCG.
+    // Search by name only so AI-hallucinated set codes / numbers don't falsely
+    // narrow results to a single wrong card.
     const autoSelected = await Promise.all(
       scanned.map(async (raw) => {
         try {
-          const results = await findCards(raw.name, raw.setCode, raw.number, searchOptions);
+          const results = await findCards(raw.name, null, null, searchOptions);
           return results.length === 1 ? results[0] : null;
         } catch {
           return null;

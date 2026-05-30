@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import type { Deck } from '@/types';
+import { getFormat } from '@/services/formats';
 
 interface DeckListItemProps {
   deck: Deck;
@@ -12,6 +13,7 @@ export function DeckListItem({ deck }: DeckListItemProps) {
   const collected = deck.cards.reduce((s, c) => s + c.collected, 0);
   const complete = deck.cards.filter((c) => c.collected >= c.needed).length;
   const progress = total === 0 ? 0 : Math.round((collected / total) * 100);
+  const formatName = deck.format ? getFormat(deck.format)?.name : undefined;
 
   return (
     <div className="rounded bg-app-elevated border border-app-border overflow-hidden">
@@ -20,6 +22,7 @@ export function DeckListItem({ deck }: DeckListItemProps) {
           <p className="text-sm font-semibold text-zinc-100 truncate">{deck.name}</p>
           <p className="text-[11px] text-zinc-500 mt-0.5">
             {deck.cards.length} cards · {complete}/{deck.cards.length} complete · {progress}%
+            {formatName && <span className="text-zinc-600"> · {formatName}</span>}
           </p>
           {total > 0 && (
             <div className="mt-2 h-1 bg-app-border rounded-full overflow-hidden">

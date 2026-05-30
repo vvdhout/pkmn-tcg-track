@@ -108,7 +108,15 @@ function setIdFromBrief(brief: TcgDexCardBrief): string {
 }
 
 function normalizeName(s: string): string {
-  return s.toLowerCase().replace(/\s+/g, ' ').trim();
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+// Converts a user-typed query to the accented form TCGdex expects.
+// Users commonly omit accents (e.g. "Pokemon" instead of "Pokémon").
+function accentQuery(q: string): string {
+  return q
+    .replace(/\bPokemon\b/gi, 'Pokémon')
+    .replace(/\bPoke\b/gi, 'Poké');
 }
 
 function namesMatch(cardName: string, queryName: string, exact: boolean): boolean {
@@ -402,7 +410,7 @@ async function fetchAllMatchingBriefs(
   const all: TcgDexCardBrief[] = [];
   for (let page = 1; page <= MAX_API_PAGES; page++) {
     const batch = await fetchCardBriefs(
-      [['name', query.trim()]],
+      [['name', accentQuery(query.trim())]],
       API_BRIEF_BATCH,
       page,
       signal,

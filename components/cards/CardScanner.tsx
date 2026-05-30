@@ -370,7 +370,7 @@ function ScanResultsSearch({
   const {
     query,
     setQuery,
-    results: cards,
+    results,
     loading,
     loadingMore,
     hasMore,
@@ -380,6 +380,14 @@ function ScanResultsSearch({
     initialQuery,
   });
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
+  const [typeFilter, setTypeFilter] = useState<'all' | 'pokemon' | 'trainer' | 'energy'>('all');
+
+  const cards = results.filter((c) => {
+    if (typeFilter === 'pokemon') return c.supertype === 'Pokémon';
+    if (typeFilter === 'trainer') return c.supertype === 'Trainer';
+    if (typeFilter === 'energy') return c.supertype === 'Energy';
+    return true;
+  });
 
   return (
     <>
@@ -418,6 +426,25 @@ function ScanResultsSearch({
             )}
           </div>
         </div>
+
+        {/* Type filter pills */}
+        {query && (
+          <div className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 border-b border-app-border overflow-x-auto scrollbar-none">
+            {(['all', 'pokemon', 'trainer', 'energy'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTypeFilter(t)}
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium border touch-manipulation transition-colors ${
+                  typeFilter === t
+                    ? 'bg-zinc-700 border-zinc-600 text-zinc-100'
+                    : 'bg-transparent border-zinc-700 text-zinc-400'
+                }`}
+              >
+                {t === 'all' ? 'All' : t === 'pokemon' ? 'Pokémon' : t === 'trainer' ? 'Trainers' : 'Energy'}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Results */}
         <div className="flex-1 overflow-y-auto">

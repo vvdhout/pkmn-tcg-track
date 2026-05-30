@@ -4,12 +4,16 @@ import { fixStoredCardImageUrl, fixStoredSymbolUrl } from '@/services/tcgAssets'
 const KEY = 'pkmn-tcg-track-v1';
 
 function migrateCard(card: TrackedCard): TrackedCard {
-  return {
-    ...card,
-    setSymbol: fixStoredSymbolUrl(card.setSymbol),
-    imageSmall: fixStoredCardImageUrl(card.imageSmall) ?? card.imageSmall,
-    imageLarge: fixStoredCardImageUrl(card.imageLarge) ?? card.imageLarge,
-  };
+  try {
+    return {
+      ...card,
+      setSymbol: fixStoredSymbolUrl(card.setSymbol),
+      imageSmall: fixStoredCardImageUrl(card.imageSmall) ?? card.imageSmall,
+      imageLarge: fixStoredCardImageUrl(card.imageLarge) ?? card.imageLarge,
+    };
+  } catch {
+    return card;
+  }
 }
 
 function migrateState(state: AppState): AppState {
@@ -35,7 +39,12 @@ export function loadState(): AppState {
     const raw = localStorage.getItem(KEY);
     if (!raw) return DEFAULT;
     const parsed = JSON.parse(raw) as Partial<AppState>;
-    return migrateState({ ...DEFAULT, ...parsed });
+    try {
+      return migrateState({ ...DEFAULT, ...parsed });
+    } catch (e) {
+      console.error('State migration failed; loading without migration', e);
+      return { ...DEFAULT, ...parsed } as AppState;
+    }
   } catch {
     return DEFAULT;
   }

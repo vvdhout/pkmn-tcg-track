@@ -197,7 +197,7 @@ interface AppContextValue {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, DEFAULT);
+  const [state, dispatch] = useReducer(reducer, undefined, loadState);
 
   useEffect(() => {
     const loaded = loadState();

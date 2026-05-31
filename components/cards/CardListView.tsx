@@ -21,7 +21,7 @@ interface CardListViewProps {
   deckId: string | null;
   getDeckLabel?: (card: TrackedCard) => string | undefined;
   getDeckCount?: (card: TrackedCard) => number | undefined;
-  onSetCollected: (tcgId: string, value: number) => void;
+  onAdjustCollected: (tcgId: string, delta: 1 | -1) => void;
   onSetNeeded: (tcgId: string, value: number) => void;
   onRemove: (tcgId: string) => void;
   onReset: () => void;
@@ -82,7 +82,7 @@ export function CardListView({
   deckId,
   getDeckLabel,
   getDeckCount,
-  onSetCollected,
+  onAdjustCollected,
   onSetNeeded,
   onRemove,
   onReset,
@@ -151,8 +151,8 @@ export function CardListView({
                   deckLabel={getDeckLabel?.(card)}
                   deckCount={getDeckCount?.(card)}
                   onImageClick={setPopupCard}
-                  onDecrement={() => onSetCollected(card.tcgId, card.collected - 1)}
-                  onIncrement={() => onSetCollected(card.tcgId, card.collected + 1)}
+                  onDecrement={() => onAdjustCollected(card.tcgId, -1)}
+                  onIncrement={() => onAdjustCollected(card.tcgId, 1)}
                 />
               ))}
             </div>

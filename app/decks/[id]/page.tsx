@@ -22,7 +22,7 @@ export default function DeckDetailPage({ params }: Props) {
   const router = useRouter();
   const { state, dispatch } = useAppContext();
   const deck = state.decks.find((d) => d.id === id);
-  const { addCard, removeCard, setCollected, setNeeded, resetCollected } = useCardActions(id);
+  const { addCard, removeCard, setCollected, adjustCollected, setNeeded, resetCollected } = useCardActions(id);
   const { deleteDeck } = useDecks();
   const [showSearch, setShowSearch] = useState(false);
   const [showFormatPicker, setShowFormatPicker] = useState(false);
@@ -122,7 +122,7 @@ export default function DeckDetailPage({ params }: Props) {
       <CardListView
         cards={deck.cards}
         deckId={id}
-        onSetCollected={setCollected}
+        onAdjustCollected={adjustCollected}
         onSetNeeded={setNeeded}
         onRemove={removeCard}
         onReset={resetCollected}

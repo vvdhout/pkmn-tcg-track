@@ -61,6 +61,12 @@ export default function AllCardsPage() {
     dispatch({ type: 'SET_COLLECTED', deckId: entry.deckId, tcgId, value });
   }
 
+  function handleAdjustCollected(tcgId: string, delta: 1 | -1) {
+    const entry = findEntry(tcgId);
+    if (!entry) return;
+    dispatch({ type: 'ADJUST_COLLECTED', deckId: entry.deckId, tcgId, delta });
+  }
+
   function handleSetNeeded(tcgId: string, value: number) {
     const entry = findEntry(tcgId);
     if (!entry) return;
@@ -163,7 +169,7 @@ export default function AllCardsPage() {
         deckId={null}
         getDeckLabel={getDeckLabel}
         getDeckCount={getDeckCount}
-        onSetCollected={handleSetCollected}
+        onAdjustCollected={handleAdjustCollected}
         onSetNeeded={handleSetNeeded}
         onRemove={handleRemove}
         onReset={handleReset}

@@ -96,6 +96,7 @@ export type AppAction =
   | { type: 'ADD_CARD'; deckId: string | null; card: TrackedCard }
   | { type: 'REMOVE_CARD'; deckId: string | null; tcgId: string }
   | { type: 'SET_COLLECTED'; deckId: string | null; tcgId: string; value: number }
+  | { type: 'ADJUST_COLLECTED'; deckId: string | null; tcgId: string; delta: 1 | -1 }
   | { type: 'SET_NEEDED'; deckId: string | null; tcgId: string; value: number }
   | { type: 'RESET_COLLECTED'; deckId: string | null }
   | { type: 'MOVE_TO_STANDALONE'; deckId: string; tcgId: string }

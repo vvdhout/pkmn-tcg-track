@@ -110,6 +110,23 @@ function reducer(state: AppState, action: AppAction): AppState {
       };
     }
 
+    case 'ADJUST_COLLECTED': {
+      const adjust = (c: TrackedCard) =>
+        c.tcgId === action.tcgId
+          ? { ...c, collected: Math.max(0, Math.min(c.collected + action.delta, c.needed)) }
+          : c;
+      if (action.deckId === null) {
+        return { ...state, standaloneCards: state.standaloneCards.map(adjust) };
+      }
+      return {
+        ...state,
+        decks: state.decks.map((d) => {
+          if (d.id !== action.deckId) return d;
+          return { ...d, cards: d.cards.map(adjust) };
+        }),
+      };
+    }
+
     case 'SET_NEEDED': {
       const update = (c: TrackedCard) =>
         c.tcgId === action.tcgId
@@ -272,6 +289,10 @@ export function useCardActions(deckId: string | null) {
     (tcgId: string, value: number) => dispatch({ type: 'SET_COLLECTED', deckId, tcgId, value }),
     [dispatch, deckId]
   );
+  const adjustCollected = useCallback(
+    (tcgId: string, delta: 1 | -1) => dispatch({ type: 'ADJUST_COLLECTED', deckId, tcgId, delta }),
+    [dispatch, deckId]
+  );
   const setNeeded = useCallback(
     (tcgId: string, value: number) => dispatch({ type: 'SET_NEEDED', deckId, tcgId, value }),
     [dispatch, deckId]
@@ -281,5 +302,5 @@ export function useCardActions(deckId: string | null) {
     [dispatch, deckId]
   );
 
-  return { addCard, removeCard, setCollected, setNeeded, resetCollected };
+  return { addCard, removeCard, setCollected, adjustCollected, setNeeded, resetCollected };
 }

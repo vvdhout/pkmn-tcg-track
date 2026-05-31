@@ -27,6 +27,7 @@ export default function DeckDetailPage({ params }: Props) {
   const [showSearch, setShowSearch] = useState(false);
   const [showFormatPicker, setShowFormatPicker] = useState(false);
   const [standaloneConflict, setStandaloneConflict] = useState<ConflictItem[] | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const deckFormat = deck?.format ? getFormat(deck.format) : undefined;
   const deckFormatIds = deck?.format ? [deck.format] : undefined;
@@ -127,12 +128,29 @@ export default function DeckDetailPage({ params }: Props) {
         onRemove={removeCard}
         onReset={resetCollected}
         footer={
-          <button
-            onClick={() => { deleteDeck(id); router.replace('/decks'); }}
-            className="w-full py-3 text-sm font-medium text-red-500 border border-red-900/40 bg-red-900/10 active:bg-red-900/20 touch-manipulation"
-          >
-            Delete List
-          </button>
+          {confirmDelete ? (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 py-3 text-sm font-medium text-zinc-300 border border-app-border bg-app-elevated active:bg-app-muted touch-manipulation"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { deleteDeck(id); router.replace('/decks'); }}
+                className="flex-1 py-3 text-sm font-semibold text-red-300 border border-red-700/60 bg-red-900/40 active:bg-red-900/60 touch-manipulation"
+              >
+                Confirm delete
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="w-full py-3 text-sm font-medium text-red-500 border border-red-900/40 bg-red-900/10 active:bg-red-900/20 touch-manipulation"
+            >
+              Delete List
+            </button>
+          )}
         }
       />
 

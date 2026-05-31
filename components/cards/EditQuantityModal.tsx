@@ -25,10 +25,12 @@ export function EditQuantityModal({
   onAddToDeck,
 }: EditQuantityModalProps) {
   const [showDeckPicker, setShowDeckPicker] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
-  // Reset deck picker whenever a different card is opened
+  // Reset sub-states whenever a different card is opened
   useEffect(() => {
     setShowDeckPicker(false);
+    setConfirmRemove(false);
   }, [card?.tcgId]);
 
   if (!card) return null;
@@ -115,13 +117,30 @@ export function EditQuantityModal({
           </button>
         )}
 
-        {/* "Remove card" — always */}
-        <button
-          onClick={() => { onRemove(); onClose(); }}
-          className="w-full py-3 rounded bg-red-900/30 text-red-400 text-sm font-medium border border-red-900/40 active:bg-red-900/50 touch-manipulation"
-        >
-          Remove card
-        </button>
+        {/* "Remove card" — always, with inline confirm */}
+        {confirmRemove ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setConfirmRemove(false)}
+              className="flex-1 py-3 rounded bg-app-elevated text-zinc-300 text-sm font-medium border border-app-border active:bg-app-muted touch-manipulation"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { onRemove(); onClose(); }}
+              className="flex-1 py-3 rounded bg-red-900/60 text-red-300 text-sm font-semibold border border-red-700/60 active:bg-red-900/80 touch-manipulation"
+            >
+              Confirm remove
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmRemove(true)}
+            className="w-full py-3 rounded bg-red-900/30 text-red-400 text-sm font-medium border border-red-900/40 active:bg-red-900/50 touch-manipulation"
+          >
+            Remove card
+          </button>
+        )}
       </div>
     </div>
   );

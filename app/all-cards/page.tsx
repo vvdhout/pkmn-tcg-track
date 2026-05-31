@@ -24,7 +24,7 @@ export default function AllCardsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.settings.defaultDeckFormat]);
 
-  // Flat list: each (deckId|null, card) pair — preserves per-deck independence
+  // One entry per (deckId|null, card) pair — the underlying source instances
   const allEntries = useMemo(() => {
     const entries: Array<{ card: TrackedCard; deckId: string | null; deckName: string }> = [];
     for (const deck of state.decks) {
@@ -38,45 +38,79 @@ export default function AllCardsPage() {
     return entries;
   }, [state]);
 
-  // Count how many decks each tcgId appears in
-  const deckCountMap = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const deck of state.decks) {
-      for (const card of deck.cards) {
-        map.set(card.tcgId, (map.get(card.tcgId) ?? 0) + 1);
+  // Merge entries that share a tcgId into one tracked card with summed
+  // collected/needed, keeping the list of source instances for dispatching.
+  const merged = useMemo(() => {
+    const map = new Map<
+      string,
+      { card: TrackedCard; sources: typeof allEntries; deckNames: string[] }
+    >();
+    for (const entry of allEntries) {
+      const id = entry.card.tcgId;
+      const existing = map.get(id);
+      if (existing) {
+        existing.sources.push(entry);
+        existing.deckNames.push(entry.deckName);
+        existing.card = {
+          ...existing.card,
+          collected: existing.card.collected + entry.card.collected,
+          needed: existing.card.needed + entry.card.needed,
+        };
+      } else {
+        map.set(id, {
+          card: { ...entry.card },
+          sources: [entry],
+          deckNames: [entry.deckName],
+        });
       }
     }
     return map;
-  }, [state.decks]);
+  }, [allEntries]);
 
-  const flatCards = useMemo(() => allEntries.map((e) => e.card), [allEntries]);
-
-  function findEntry(tcgId: string) {
-    return allEntries.find((e) => e.card.tcgId === tcgId);
-  }
-
-  function handleSetCollected(tcgId: string, value: number) {
-    const entry = findEntry(tcgId);
-    if (!entry) return;
-    dispatch({ type: 'SET_COLLECTED', deckId: entry.deckId, tcgId, value });
-  }
+  const flatCards = useMemo(() => [...merged.values()].map((m) => m.card), [merged]);
 
   function handleAdjustCollected(tcgId: string, delta: 1 | -1) {
-    const entry = findEntry(tcgId);
-    if (!entry) return;
-    dispatch({ type: 'ADJUST_COLLECTED', deckId: entry.deckId, tcgId, delta });
+    const m = merged.get(tcgId);
+    if (!m) return;
+    if (delta === 1) {
+      // Fill the first source that still needs cards
+      const target = m.sources.find((s) => s.card.collected < s.card.needed) ?? m.sources[0];
+      dispatch({ type: 'ADJUST_COLLECTED', deckId: target.deckId, tcgId, delta: 1 });
+    } else {
+      // Take from the last source that has any collected
+      const target = [...m.sources].reverse().find((s) => s.card.collected > 0) ?? m.sources[0];
+      dispatch({ type: 'ADJUST_COLLECTED', deckId: target.deckId, tcgId, delta: -1 });
+    }
   }
 
   function handleSetNeeded(tcgId: string, value: number) {
-    const entry = findEntry(tcgId);
-    if (!entry) return;
-    dispatch({ type: 'SET_NEEDED', deckId: entry.deckId, tcgId, value });
+    const m = merged.get(tcgId);
+    if (!m) return;
+    // value is the new merged total; apply the difference across sources
+    let delta = value - m.card.needed;
+    if (delta > 0) {
+      for (const s of m.sources) {
+        if (delta <= 0) break;
+        dispatch({ type: 'SET_NEEDED', deckId: s.deckId, tcgId, value: s.card.needed + delta });
+        delta = 0;
+      }
+    } else if (delta < 0) {
+      for (const s of [...m.sources].reverse()) {
+        if (delta >= 0) break;
+        const reducible = Math.min(s.card.needed - 1, -delta);
+        if (reducible <= 0) continue;
+        dispatch({ type: 'SET_NEEDED', deckId: s.deckId, tcgId, value: s.card.needed - reducible });
+        delta += reducible;
+      }
+    }
   }
 
   function handleRemove(tcgId: string) {
-    const entry = findEntry(tcgId);
-    if (!entry) return;
-    dispatch({ type: 'REMOVE_CARD', deckId: entry.deckId, tcgId });
+    const m = merged.get(tcgId);
+    if (!m) return;
+    for (const s of m.sources) {
+      dispatch({ type: 'REMOVE_CARD', deckId: s.deckId, tcgId });
+    }
   }
 
   function handleReset() {
@@ -99,11 +133,13 @@ export default function AllCardsPage() {
   }
 
   function getDeckLabel(card: TrackedCard) {
-    return findEntry(card.tcgId)?.deckName;
+    const m = merged.get(card.tcgId);
+    if (!m) return undefined;
+    return m.deckNames.length === 1 ? m.deckNames[0] : `${m.deckNames.length} lists`;
   }
 
   function getDeckCount(card: TrackedCard) {
-    return deckCountMap.get(card.tcgId);
+    return merged.get(card.tcgId)?.sources.length;
   }
 
   const visibleCards = useMemo(() => {

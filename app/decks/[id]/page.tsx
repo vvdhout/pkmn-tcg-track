@@ -29,14 +29,20 @@ export default function DeckDetailPage({ params }: Props) {
   const [standaloneConflict, setStandaloneConflict] = useState<ConflictItem[] | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const [showExportPicker, setShowExportPicker] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  function handleExport() {
+  function handleExport(mode: 'full' | 'missing') {
     if (!deck) return;
-    const text = deck.cards
-      .map((c) => `${c.needed} ${c.name} ${c.setId.toUpperCase()} ${c.number}`)
+    const lines = deck.cards
+      .map((c) => {
+        const count = mode === 'missing' ? c.needed - c.collected : c.needed;
+        return count > 0 ? `${count} ${c.name} ${c.setId.toUpperCase()} ${c.number}` : null;
+      })
+      .filter(Boolean)
       .join('\n');
-    navigator.clipboard.writeText(text).then(() => {
+    navigator.clipboard.writeText(lines).then(() => {
+      setShowExportPicker(false);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     });
@@ -125,10 +131,9 @@ export default function DeckDetailPage({ params }: Props) {
           </button>
         </div>
         <button
-          onClick={handleExport}
+          onClick={() => setShowExportPicker(true)}
           className="w-8 h-8 flex items-center justify-center rounded bg-app-elevated text-zinc-400 border border-app-border active:bg-app-muted touch-manipulation"
           aria-label="Export list"
-          title="Copy list to clipboard"
         >
           {copied ? <CheckIcon /> : <ExportIcon />}
         </button>
@@ -188,6 +193,45 @@ export default function DeckDetailPage({ params }: Props) {
           onSelect={(formatId) => dispatch({ type: 'SET_DECK_FORMAT', deckId: id, format: formatId })}
           onClose={() => setShowFormatPicker(false)}
         />
+      )}
+
+      {/* Export picker */}
+      {showExportPicker && (
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/60"
+          onClick={() => setShowExportPicker(false)}
+        >
+          <div
+            className="w-full bg-app-surface border-t border-app-border"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 pt-4 pb-3 border-b border-app-border">
+              <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">Export list</p>
+              <p className="text-sm text-zinc-400 mt-0.5">Choose what to copy to clipboard</p>
+            </div>
+            <button
+              onClick={() => handleExport('full')}
+              className="w-full flex items-center justify-between px-4 py-3.5 border-b border-app-border active:bg-app-elevated touch-manipulation text-left"
+            >
+              <span className="text-sm text-zinc-100">Full list</span>
+              <span className="text-xs text-zinc-500">All cards with needed count</span>
+            </button>
+            <button
+              onClick={() => handleExport('missing')}
+              className="w-full flex items-center justify-between px-4 py-3.5 border-b border-app-border active:bg-app-elevated touch-manipulation text-left"
+            >
+              <span className="text-sm text-zinc-100">Missing cards only</span>
+              <span className="text-xs text-zinc-500">Cards still needed, for proxies</span>
+            </button>
+            <button
+              onClick={() => setShowExportPicker(false)}
+              className="w-full py-3.5 text-sm text-zinc-400 active:bg-app-elevated touch-manipulation"
+              style={{ paddingBottom: 'max(0.875rem, env(safe-area-inset-bottom))' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Standalone conflict overlay — appears above Modal (z-[60]) */}

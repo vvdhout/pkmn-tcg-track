@@ -300,7 +300,7 @@ function BackIcon() {
 function ExportIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-      <path d="M7.5 1v8M4.5 6l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7.5 9V1M4.5 4l3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M2 10v3h11v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

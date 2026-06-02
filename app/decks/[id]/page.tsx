@@ -29,6 +29,19 @@ export default function DeckDetailPage({ params }: Props) {
   const [standaloneConflict, setStandaloneConflict] = useState<ConflictItem[] | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const [copied, setCopied] = useState(false);
+
+  function handleExport() {
+    if (!deck) return;
+    const text = deck.cards
+      .map((c) => `${c.needed} ${c.name} ${c.setId.toUpperCase()} ${c.number}`)
+      .join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    });
+  }
+
   const deckFormat = deck?.format ? getFormat(deck.format) : undefined;
   const deckFormatIds = deck?.format ? [deck.format] : undefined;
 
@@ -111,6 +124,14 @@ export default function DeckDetailPage({ params }: Props) {
             {deckFormat ? deckFormat.name : 'No format'}
           </button>
         </div>
+        <button
+          onClick={handleExport}
+          className="w-8 h-8 flex items-center justify-center rounded bg-app-elevated text-zinc-400 border border-app-border active:bg-app-muted touch-manipulation"
+          aria-label="Export list"
+          title="Copy list to clipboard"
+        >
+          {copied ? <CheckIcon /> : <ExportIcon />}
+        </button>
         <button
           onClick={() => setShowSearch(true)}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded bg-white text-zinc-900 text-xs font-semibold active:bg-zinc-200 touch-manipulation"
@@ -230,6 +251,23 @@ function BackIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ExportIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+      <path d="M7.5 1v8M4.5 6l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 10v3h11v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M2.5 7l3.5 3.5 5.5-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

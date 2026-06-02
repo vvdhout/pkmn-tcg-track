@@ -148,8 +148,7 @@ export default function DeckDetailPage({ params }: Props) {
         onSetNeeded={setNeeded}
         onRemove={removeCard}
         onReset={resetCollected}
-        footer={
-          {confirmDelete ? (
+        footer={confirmDelete ? (
             <div className="flex gap-2">
               <button
                 onClick={() => setConfirmDelete(false)}

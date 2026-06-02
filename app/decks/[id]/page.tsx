@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { FormatPicker } from '@/components/formats/FormatPicker';
 import { mapToTracked } from '@/services/pokemonTcg';
 import { getFormat } from '@/services/formats';
+import { getPtcgoCodes } from '@/services/ptcgoCodes';
 import type { TcgCard } from '@/types';
 
 interface Props {
@@ -32,12 +33,15 @@ export default function DeckDetailPage({ params }: Props) {
   const [showExportPicker, setShowExportPicker] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  function handleExport(mode: 'full' | 'missing') {
+  async function handleExport(mode: 'full' | 'missing') {
     if (!deck) return;
+    const ptcgoCodes = await getPtcgoCodes().catch(() => new Map<string, string>());
     const lines = deck.cards
       .map((c) => {
         const count = mode === 'missing' ? c.needed - c.collected : c.needed;
-        return count > 0 ? `${count} ${c.name} ${c.setId.toUpperCase()} ${c.number}` : null;
+        if (count <= 0) return null;
+        const setCode = ptcgoCodes.get(c.setId) ?? c.setId.toUpperCase();
+        return `${count} ${c.name} ${setCode} ${c.number}`;
       })
       .filter(Boolean)
       .join('\n');

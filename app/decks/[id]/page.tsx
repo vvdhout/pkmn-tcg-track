@@ -10,6 +10,7 @@ import { FormatPicker } from '@/components/formats/FormatPicker';
 import { mapToTracked } from '@/services/pokemonTcg';
 import { getFormat } from '@/services/formats';
 import { getPtcgoCodes } from '@/services/ptcgoCodes';
+import { openProxyPrint } from '@/services/proxyPrint';
 import type { TcgCard } from '@/types';
 
 interface Props {
@@ -209,27 +210,45 @@ export default function DeckDetailPage({ params }: Props) {
             className="w-full bg-app-surface border-t border-app-border"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 pt-4 pb-3 border-b border-app-border">
+            <div className="px-4 pt-4 pb-2">
               <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">Export list</p>
-              <p className="text-sm text-zinc-400 mt-0.5">Choose what to copy to clipboard</p>
             </div>
+
+            <p className="px-4 py-1.5 text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Copy to clipboard</p>
             <button
               onClick={() => handleExport('full')}
-              className="w-full flex items-center justify-between px-4 py-3.5 border-b border-app-border active:bg-app-elevated touch-manipulation text-left"
+              className="w-full flex items-center justify-between px-4 py-3 border-t border-app-border active:bg-app-elevated touch-manipulation text-left"
             >
               <span className="text-sm text-zinc-100">Full list</span>
-              <span className="text-xs text-zinc-500">All cards with needed count</span>
+              <span className="text-xs text-zinc-500">All cards · needed count</span>
             </button>
             <button
               onClick={() => handleExport('missing')}
-              className="w-full flex items-center justify-between px-4 py-3.5 border-b border-app-border active:bg-app-elevated touch-manipulation text-left"
+              className="w-full flex items-center justify-between px-4 py-3 border-t border-app-border active:bg-app-elevated touch-manipulation text-left"
             >
               <span className="text-sm text-zinc-100">Missing cards only</span>
-              <span className="text-xs text-zinc-500">Cards still needed, for proxies</span>
+              <span className="text-xs text-zinc-500">Cards still needed</span>
+            </button>
+
+            <p className="px-4 py-1.5 text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-1">Print proxies</p>
+            <button
+              onClick={() => { setShowExportPicker(false); openProxyPrint(deck.cards, 'full'); }}
+              className="w-full flex items-center justify-between px-4 py-3 border-t border-app-border active:bg-app-elevated touch-manipulation text-left"
+            >
+              <span className="text-sm text-zinc-100">Full list</span>
+              <span className="text-xs text-zinc-500">A4 landscape · 8 per page</span>
             </button>
             <button
+              onClick={() => { setShowExportPicker(false); openProxyPrint(deck.cards, 'missing'); }}
+              className="w-full flex items-center justify-between px-4 py-3 border-t border-app-border active:bg-app-elevated touch-manipulation text-left"
+            >
+              <span className="text-sm text-zinc-100">Missing cards only</span>
+              <span className="text-xs text-zinc-500">Cards still needed</span>
+            </button>
+
+            <button
               onClick={() => setShowExportPicker(false)}
-              className="w-full py-3.5 text-sm text-zinc-400 active:bg-app-elevated touch-manipulation"
+              className="w-full py-3.5 text-sm text-zinc-400 border-t border-app-border active:bg-app-elevated touch-manipulation mt-1"
               style={{ paddingBottom: 'max(0.875rem, env(safe-area-inset-bottom))' }}
             >
               Cancel

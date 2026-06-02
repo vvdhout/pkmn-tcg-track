@@ -171,7 +171,6 @@ export default function DeckDetailPage({ params }: Props) {
               Delete List
             </button>
           )}
-        }
       />
 
       <Modal

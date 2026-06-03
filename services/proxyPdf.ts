@@ -69,10 +69,10 @@ export async function generateProxyPdf(
     if (p > 0) pdf.addPage();
     const pageCards = instances.slice(p * PER_PAGE, (p + 1) * PER_PAGE);
 
-    // Cut lines — thin dashed grey lines in the 1mm gaps between cards
-    pdf.setDrawColor(160, 160, 160);
-    pdf.setLineWidth(0.15);
-    pdf.setLineDashPattern([0.8, 0.8], 0);
+    // Cut lines — hairline at the centre of each 1mm gap
+    pdf.setDrawColor(100, 100, 100);
+    pdf.setLineWidth(0.05);
+    pdf.setLineDashPattern([], 0);
 
     for (let c = 1; c < COLS; c++) {
       const x = LEFT + c * CARD_W + (c - 1) * GAP + GAP / 2;

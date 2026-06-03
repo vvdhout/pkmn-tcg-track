@@ -11,6 +11,7 @@ import { mapToTracked } from '@/services/pokemonTcg';
 import { getFormat } from '@/services/formats';
 import { getPtcgoCodes } from '@/services/ptcgoCodes';
 import { openProxyPrint } from '@/services/proxyPrint';
+import { generateProxyPdf } from '@/services/proxyPdf';
 import type { TcgCard } from '@/types';
 
 interface Props {
@@ -33,6 +34,18 @@ export default function DeckDetailPage({ params }: Props) {
 
   const [showExportPicker, setShowExportPicker] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState<number | null>(null);
+
+  async function handlePdfExport(mode: 'full' | 'missing') {
+    if (!deck) return;
+    setShowExportPicker(false);
+    setPdfProgress(0);
+    try {
+      await generateProxyPdf(deck.cards, mode, setPdfProgress);
+    } finally {
+      setPdfProgress(null);
+    }
+  }
 
   async function handleExport(mode: 'full' | 'missing') {
     if (!deck) return;
@@ -200,6 +213,22 @@ export default function DeckDetailPage({ params }: Props) {
         />
       )}
 
+      {/* PDF generation progress overlay */}
+      {pdfProgress !== null && (
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-black/70">
+          <div className="bg-app-surface border border-app-border rounded px-8 py-6 flex flex-col items-center gap-4 min-w-[200px]">
+            <p className="text-sm font-semibold text-zinc-100">Generating PDF…</p>
+            <div className="w-full h-1.5 bg-app-border rounded-full overflow-hidden">
+              <div
+                className="h-full bg-white rounded-full transition-all duration-200"
+                style={{ width: `${pdfProgress}%` }}
+              />
+            </div>
+            <p className="text-xs text-zinc-500">{pdfProgress}%</p>
+          </div>
+        </div>
+      )}
+
       {/* Export picker */}
       {showExportPicker && (
         <div
@@ -232,14 +261,14 @@ export default function DeckDetailPage({ params }: Props) {
 
             <p className="px-4 py-1.5 text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-1">Print proxies</p>
             <button
-              onClick={() => { setShowExportPicker(false); openProxyPrint(deck.cards, 'full'); }}
+              onClick={() => handlePdfExport('full')}
               className="w-full flex items-center justify-between px-4 py-3 border-t border-app-border active:bg-app-elevated touch-manipulation text-left"
             >
               <span className="text-sm text-zinc-100">Full list</span>
-              <span className="text-xs text-zinc-500">A4 landscape · 8 per page</span>
+              <span className="text-xs text-zinc-500">A4 landscape · PDF download</span>
             </button>
             <button
-              onClick={() => { setShowExportPicker(false); openProxyPrint(deck.cards, 'missing'); }}
+              onClick={() => handlePdfExport('missing')}
               className="w-full flex items-center justify-between px-4 py-3 border-t border-app-border active:bg-app-elevated touch-manipulation text-left"
             >
               <span className="text-sm text-zinc-100">Missing cards only</span>

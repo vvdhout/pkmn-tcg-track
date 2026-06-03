@@ -6,6 +6,11 @@ const PKMN_API = 'https://api.pokemontcg.io/v2';
 
 let cache: Map<string, string> | null = null;
 
+/** Synchronous read from the cache — returns null if cache not yet loaded. */
+export function getCachedPtcgoCode(setId: string): string | null {
+  return cache?.get(setId) ?? null;
+}
+
 export async function getPtcgoCodes(): Promise<Map<string, string>> {
   if (cache) return cache;
 

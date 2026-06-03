@@ -8,6 +8,7 @@ import {
   resolveCardImageUrls,
   resolveSymbolUrl,
 } from '@/services/tcgAssets';
+import { getCachedPtcgoCode } from '@/services/ptcgoCodes';
 
 const BASE_URL = 'https://api.tcgdex.net/v2/en';
 const HYDRATE_CONCURRENCY = 6;
@@ -155,9 +156,14 @@ function toCardmarketSlug(s: string): string {
     .toLowerCase();
 }
 
-// Derives the Cardmarket set abbreviation used in card slugs (e.g. "Neo Genesis" → "NG").
-// Cardmarket uses the initials of each word, skipping non-alphabetic tokens like "&".
-function toCmSetCode(setName: string): string {
+// Returns the Cardmarket set abbreviation for card slugs.
+// Uses the official PTCGO code (e.g. "SVI", "PAL") from cache when available,
+// falling back to initials of set name words (e.g. "Neo Genesis" → "NG").
+function toCmSetCode(setName: string, setId?: string): string {
+  if (setId) {
+    const ptcgo = getCachedPtcgoCode(setId);
+    if (ptcgo) return ptcgo;
+  }
   return setName
     .split(/\s+/)
     .filter((w) => /[a-zA-Z]/.test(w))
@@ -179,7 +185,7 @@ function cardmarketUrl(
 ): string | undefined {
   const set = raw.set;
   if (!set?.name) return undefined;
-  const cardSlug = `${toCardmarketSlug(raw.name)}-${toCmSetCode(set.name)}${raw.localId ?? ''}`;
+  const cardSlug = `${toCardmarketSlug(raw.name)}-${toCmSetCode(set.name, set.id)}${raw.localId ?? ''}`;
   const slugPath = `https://www.cardmarket.com/en/Pokemon/Products/Singles/${toCardmarketSlug(set.name)}/${cardSlug}`;
   return buildCardmarketProductUrl(slugPath, cm?.idProduct);
 }
@@ -589,6 +595,7 @@ export async function refreshCardPrices(
     imageSmall?: string;
     imageLarge?: string;
     setSymbol?: string;
+    cardmarketUrl?: string;
   }[]
 > {
   const unique = [...new Set(ids)];
@@ -599,6 +606,7 @@ export async function refreshCardPrices(
     imageSmall?: string;
     imageLarge?: string;
     setSymbol?: string;
+    cardmarketUrl?: string;
   }[] = [];
 
   for (let i = 0; i < unique.length; i += HYDRATE_CONCURRENCY) {
@@ -615,6 +623,7 @@ export async function refreshCardPrices(
             imageSmall: card.images.small || undefined,
             imageLarge: card.images.large || undefined,
             setSymbol: card.set.images?.symbol,
+            cardmarketUrl: card.cardmarket?.url,
           };
         } catch {
           return null;
@@ -628,7 +637,8 @@ export async function refreshCardPrices(
         row.avg30 != null ||
         row.imageSmall ||
         row.imageLarge ||
-        row.setSymbol
+        row.setSymbol ||
+        row.cardmarketUrl
       ) {
         updates.push(row);
       }

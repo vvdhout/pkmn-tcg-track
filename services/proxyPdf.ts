@@ -2,18 +2,17 @@ import type { TrackedCard } from '@/types';
 
 const CARD_W = 63;   // mm
 const CARD_H = 88;   // mm
-const GAP    = 1;    // mm — cut line space
 const COLS   = 4;
 const ROWS   = 2;
 const PER_PAGE = COLS * ROWS;
 const PAGE_W = 297;  // A4 landscape
 const PAGE_H = 210;
 
-// Centre the grid on the page
-const GRID_W = COLS * CARD_W + (COLS - 1) * GAP;
-const GRID_H = ROWS * CARD_H + (ROWS - 1) * GAP;
-const LEFT   = (PAGE_W - GRID_W) / 2;
-const TOP    = (PAGE_H - GRID_H) / 2;
+// Cards are packed edge-to-edge; hairline cut marks sit right on the boundary.
+// Small fixed margin so cards don't bleed off the page edge.
+const MARGIN = 3;    // mm
+const LEFT   = MARGIN;
+const TOP    = (PAGE_H - ROWS * CARD_H) / 2; // vertically centred
 
 async function fetchImageDataUrl(src: string): Promise<string | null> {
   try {
@@ -69,29 +68,26 @@ export async function generateProxyPdf(
     if (p > 0) pdf.addPage();
     const pageCards = instances.slice(p * PER_PAGE, (p + 1) * PER_PAGE);
 
-    // Cut lines — hairline at the centre of each 1mm gap
+    // Hairline cut marks right at the card boundaries
     pdf.setDrawColor(100, 100, 100);
     pdf.setLineWidth(0.05);
-    pdf.setLineDashPattern([], 0);
 
     for (let c = 1; c < COLS; c++) {
-      const x = LEFT + c * CARD_W + (c - 1) * GAP + GAP / 2;
-      pdf.line(x, TOP - 2, x, TOP + GRID_H + 2);
+      const x = LEFT + c * CARD_W;
+      pdf.line(x, TOP, x, TOP + ROWS * CARD_H);
     }
     for (let r = 1; r < ROWS; r++) {
-      const y = TOP + r * CARD_H + (r - 1) * GAP + GAP / 2;
-      pdf.line(LEFT - 2, y, LEFT + GRID_W + 2, y);
+      const y = TOP + r * CARD_H;
+      pdf.line(LEFT, y, LEFT + COLS * CARD_W, y);
     }
-
-    pdf.setLineDashPattern([], 0);
 
     // Place card images
     for (let i = 0; i < pageCards.length; i++) {
       const card = pageCards[i];
       const col = i % COLS;
       const row = Math.floor(i / COLS);
-      const x = LEFT + col * (CARD_W + GAP);
-      const y = TOP + row * (CARD_H + GAP);
+      const x = LEFT + col * CARD_W;
+      const y = TOP + row * CARD_H;
 
       const imageUrl = card.imageLarge || card.imageSmall;
       const dataUrl = imageMap.get(imageUrl);

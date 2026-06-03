@@ -431,23 +431,31 @@ function ScanResultsSearch({
           </div>
         </div>
 
-        {/* Format filter bar */}
-        <div className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 border-b border-app-border">
-          <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Format filter</span>
+        {/* Format filter — same design as CardSearch */}
+        <div className="flex-shrink-0 px-3 py-2.5 border-b border-app-border">
+          <p className="text-[10px] font-bold tracking-widest text-zinc-600 uppercase mb-1.5">
+            Format filter
+          </p>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setShowFormatPicker(true)}
-              className="text-xs text-zinc-300 active:text-white touch-manipulation"
+              className="flex-1 min-w-0 flex items-center justify-between gap-2 px-2.5 py-2 rounded border border-app-border bg-app-elevated active:bg-app-muted touch-manipulation"
+              aria-label="Change format filter"
             >
-              {formatFilterLabel(formatIds.length > 0 ? formatIds : undefined)}
+              <span className={`text-xs truncate ${formatIds.length > 0 ? 'text-zinc-200' : 'text-zinc-500'}`}>
+                {formatFilterLabel(formatIds.length > 0 ? formatIds : undefined)}
+              </span>
+              <ChevronDownIcon />
             </button>
             {formatIds.length > 0 && (
               <button
+                type="button"
                 onClick={() => setFormatIds([])}
-                className="text-zinc-600 active:text-zinc-300 touch-manipulation text-xs"
+                className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded border border-app-border text-zinc-500 active:bg-app-muted touch-manipulation"
                 aria-label="Clear format filter"
               >
-                ✕
+                ×
               </button>
             )}
           </div>
@@ -748,6 +756,14 @@ async function compressImage(
     img.onerror = reject;
     img.src = url;
   });
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-zinc-600 flex-shrink-0">
+      <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 function CameraIcon() {

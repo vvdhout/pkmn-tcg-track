@@ -7,6 +7,8 @@ import type { TcgCard } from '@/types';
 import { findCards, type SearchOptions } from '@/services/pokemonTcg';
 import { usePokemonSearch } from '@/hooks/usePokemonSearch';
 import { useAppContext } from '@/context/AppContext';
+import { FormatPicker } from '@/components/formats/FormatPicker';
+import { formatFilterLabel } from '@/services/formats';
 
 interface ScannedRaw {
   name: string;
@@ -367,6 +369,8 @@ function ScanResultsSearch({
   onSelect: (card: TcgCard) => void;
   onBack: () => void;
 }) {
+  const [formatIds, setFormatIds] = useState<string[]>(options.formatIds ?? []);
+  const [showFormatPicker, setShowFormatPicker] = useState(false);
   const {
     query,
     setQuery,
@@ -376,7 +380,7 @@ function ScanResultsSearch({
     hasMore,
     loadMore,
   } = usePokemonSearch({
-    formatIds: options.formatIds,
+    formatIds: formatIds.length > 0 ? formatIds : undefined,
     initialQuery,
   });
   const [popupCard, setPopupCard] = useState<TcgCard | null>(null);
@@ -420,6 +424,28 @@ function ScanResultsSearch({
               <button
                 onClick={() => setQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 touch-manipulation"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Format filter bar */}
+        <div className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 border-b border-app-border">
+          <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Format filter</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFormatPicker(true)}
+              className="text-xs text-zinc-300 active:text-white touch-manipulation"
+            >
+              {formatFilterLabel(formatIds.length > 0 ? formatIds : undefined)}
+            </button>
+            {formatIds.length > 0 && (
+              <button
+                onClick={() => setFormatIds([])}
+                className="text-zinc-600 active:text-zinc-300 touch-manipulation text-xs"
+                aria-label="Clear format filter"
               >
                 ✕
               </button>
@@ -488,6 +514,15 @@ function ScanResultsSearch({
           isMultiCard={isMultiCard}
           onClose={() => setPopupCard(null)}
           onAdd={(card) => { onSelect(card); setPopupCard(null); }}
+        />
+      )}
+
+      {showFormatPicker && (
+        <FormatPicker
+          multiSelect
+          selectedFormatIds={formatIds}
+          onApply={(ids) => { setFormatIds(ids); setShowFormatPicker(false); }}
+          onClose={() => setShowFormatPicker(false)}
         />
       )}
     </>

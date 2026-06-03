@@ -9,10 +9,8 @@ const PAGE_W = 297;  // A4 landscape
 const PAGE_H = 210;
 
 // Cards are packed edge-to-edge; hairline cut marks sit right on the boundary.
-// Small fixed margin so cards don't bleed off the page edge.
-const MARGIN = 3;    // mm
-const LEFT   = MARGIN;
-const TOP    = (PAGE_H - ROWS * CARD_H) / 2; // vertically centred
+const LEFT   = (PAGE_W - COLS * CARD_W) / 2;
+const TOP    = (PAGE_H - ROWS * CARD_H) / 2;
 
 async function fetchImageDataUrl(src: string): Promise<string | null> {
   try {
@@ -70,7 +68,7 @@ export async function generateProxyPdf(
 
     // Hairline cut marks right at the card boundaries
     pdf.setDrawColor(100, 100, 100);
-    pdf.setLineWidth(0.05);
+    pdf.setLineWidth(0.03);
 
     for (let c = 1; c < COLS; c++) {
       const x = LEFT + c * CARD_W;

@@ -12,6 +12,7 @@ import {
 import type { AppState, AppAction, AppSettings, TrackedCard } from '@/types';
 import { loadState, saveState } from '@/services/storage';
 import { refreshCardPrices } from '@/services/pokemonTcg';
+import { getPtcgoCodes } from '@/services/ptcgoCodes';
 
 const DEFAULT_SETTINGS: AppSettings = {
   searchSortOrder: 'asc',
@@ -173,6 +174,7 @@ function reducer(state: AppState, action: AppAction): AppState {
           ...(p.imageSmall ? { imageSmall: p.imageSmall } : {}),
           ...(p.imageLarge ? { imageLarge: p.imageLarge } : {}),
           ...(p.setSymbol ? { setSymbol: p.setSymbol } : {}),
+          ...(p.cardmarketUrl ? { cardmarketUrl: p.cardmarketUrl } : {}),
         };
       };
       return {
@@ -232,7 +234,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       (age > staleAfter || allCards.some((c) => !c.imageSmall || !c.setSymbol));
 
     if (needsAssetRefresh) {
-      refreshCardPrices(uniqueIds).then((updates) => {
+      getPtcgoCodes().then(() => refreshCardPrices(uniqueIds)).then((updates) => {
           if (updates.length > 0) {
           dispatch({ type: 'UPDATE_CARD_PRICES', updates, timestamp: Date.now() });
         }

@@ -107,6 +107,7 @@ export type AppAction =
         tcgId: string;
         lowPrice?: number;
         avg30?: number;
+        cardmarketUrl?: string;
         imageSmall?: string;
         imageLarge?: string;
         setSymbol?: string;

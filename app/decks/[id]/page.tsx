@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { FormatPicker } from '@/components/formats/FormatPicker';
 import { mapToTracked } from '@/services/pokemonTcg';
 import { getFormat } from '@/services/formats';
+import { isPointFormat } from '@/services/pointList';
 import { getPtcgoCodes } from '@/services/ptcgoCodes';
 import { openProxyPrint } from '@/services/proxyPrint';
 import { generateProxyPdf } from '@/services/proxyPdf';
@@ -68,6 +69,7 @@ export default function DeckDetailPage({ params }: Props) {
 
   const deckFormat = deck?.format ? getFormat(deck.format) : undefined;
   const deckFormatIds = deck?.format ? [deck.format] : undefined;
+  const pointFormat = isPointFormat(deck?.format);
 
   if (!deck) {
     return (
@@ -167,6 +169,7 @@ export default function DeckDetailPage({ params }: Props) {
       <CardListView
         cards={deck.cards}
         deckId={id}
+        pointFormat={pointFormat}
         onAdjustCollected={adjustCollected}
         onSetNeeded={setNeeded}
         onRemove={removeCard}

@@ -1,13 +1,16 @@
 'use client';
 
 import { TcgAssetImage } from '@/components/cards/TcgAssetImage';
+import { PointStars } from '@/components/cards/PointStars';
 import { cardmarketLinkHref } from '@/services/tcgAssets';
+import { getCardPoints } from '@/services/pointList';
 import type { TrackedCard } from '@/types';
 
 interface CardListItemProps {
   card: TrackedCard;
   deckLabel?: string;
   deckCount?: number;
+  pointFormat?: boolean;
   onImageClick: (card: TrackedCard) => void;
   onDecrement: () => void;
   onIncrement: () => void;
@@ -17,10 +20,12 @@ export function CardListItem({
   card,
   deckLabel,
   deckCount,
+  pointFormat,
   onImageClick,
   onDecrement,
   onIncrement,
 }: CardListItemProps) {
+  const points = pointFormat ? getCardPoints(card.name, card.number) : 0;
   const isComplete = card.collected >= card.needed;
   const cmHref = cardmarketLinkHref(card.cardmarketUrl);
 
@@ -73,6 +78,7 @@ export function CardListItem({
                 {card.setId.toUpperCase()}-{card.number.padStart(3, '0')}
               </span>
             </span>
+            <PointStars points={points} />
             {deckLabel && (
               <span className="text-[10px] text-zinc-600 italic truncate">{deckLabel}</span>
             )}

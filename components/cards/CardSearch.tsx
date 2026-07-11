@@ -5,6 +5,8 @@ import { cardmarketLinkHref } from '@/services/tcgAssets';
 import { useState, useEffect, useRef } from 'react';
 import { usePokemonSearch } from '@/hooks/usePokemonSearch';
 import { formatFilterLabel } from '@/services/formats';
+import { getCardPoints, POINT_FORMAT_ID } from '@/services/pointList';
+import { PointStars } from '@/components/cards/PointStars';
 import { FormatPicker } from '@/components/formats/FormatPicker';
 import type { TcgCard } from '@/types';
 import { CardScanner } from './CardScanner';
@@ -72,6 +74,7 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
   const showFormatBar =
     formatEditable || (!!formatIds && formatIds.length > 0);
   const formatLabel = formatFilterLabel(formatIds);
+  const showPoints = !!formatIds?.includes(POINT_FORMAT_ID);
 
   if (mode === 'scan') {
     return (
@@ -220,6 +223,7 @@ export function CardSearch({ onSelect, onSelectMultiple, excludeIds = [], format
           <SearchResult
             key={card.id}
             card={card}
+            showPoints={showPoints}
             onSelect={onSelect}
             onImageClick={setPopupCard}
           />
@@ -265,13 +269,16 @@ function ChevronDownIcon() {
 
 function SearchResult({
   card,
+  showPoints,
   onSelect,
   onImageClick,
 }: {
   card: TcgCard;
+  showPoints?: boolean;
   onSelect: (c: TcgCard) => void;
   onImageClick: (c: TcgCard) => void;
 }) {
+  const points = showPoints ? getCardPoints(card.name, card.number) : 0;
   const prices = card.cardmarket?.prices;
   const lowPrice =
     prices?.lowPriceExPlus != null && prices.lowPriceExPlus > 0
@@ -300,7 +307,10 @@ function SearchResult({
         className="w-9 h-[50px] rounded object-cover flex-shrink-0"
       />
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-        <p className="text-sm font-medium text-zinc-100 truncate">{card.name}</p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <p className="text-sm font-medium text-zinc-100 truncate">{card.name}</p>
+          <PointStars points={points} />
+        </div>
         <div className="flex items-center gap-1 text-[11px] text-zinc-500 truncate">
           {card.set.images?.symbol && (
             <TcgAssetImage

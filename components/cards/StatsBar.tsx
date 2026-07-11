@@ -1,4 +1,5 @@
 import type { TrackedCard } from '@/types';
+import { getDeckPoints, MAX_DECK_POINTS } from '@/services/pointList';
 
 function cardRefPrice(card: TrackedCard): number {
   const low = card.cardmarketLowPrice;
@@ -9,9 +10,10 @@ function cardRefPrice(card: TrackedCard): number {
 
 interface StatsBarProps {
   cards: TrackedCard[];
+  pointFormat?: boolean;
 }
 
-export function StatsBar({ cards }: StatsBarProps) {
+export function StatsBar({ cards, pointFormat }: StatsBarProps) {
   const totalNeeded = cards.reduce((s, c) => s + c.needed, 0);
   const totalCollected = cards.reduce((s, c) => s + c.collected, 0);
   const progress = totalNeeded === 0 ? 0 : Math.round((totalCollected / totalNeeded) * 100);
@@ -24,12 +26,28 @@ export function StatsBar({ cards }: StatsBarProps) {
     ? cards.reduce((s, c) => s + cardRefPrice(c) * Math.max(0, c.needed - c.collected), 0)
     : null;
 
+  const deckPoints = pointFormat ? getDeckPoints(cards) : null;
+  const overLimit = deckPoints !== null && deckPoints > MAX_DECK_POINTS;
+
   return (
     <div className="px-3 pt-3 pb-2">
       <div className="flex items-baseline justify-between mb-1.5">
-        <span className="text-xs font-semibold text-zinc-100 tabular-nums">
-          {totalCollected} / {totalNeeded}
-        </span>
+        <div className="flex items-baseline gap-2">
+          <span className="text-xs font-semibold text-zinc-100 tabular-nums">
+            {totalCollected} / {totalNeeded}
+          </span>
+          {deckPoints !== null && (
+            <span
+              className={`text-[11px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full ${
+                overLimit
+                  ? 'bg-red-900/50 text-red-300 border border-red-700/60'
+                  : 'bg-app-elevated text-zinc-300 border border-app-border'
+              }`}
+            >
+              {deckPoints}/{MAX_DECK_POINTS} pts{overLimit ? ' — over limit' : ''}
+            </span>
+          )}
+        </div>
         <div className="flex items-baseline gap-2">
           {totalPrice != null && (
             <span className="text-[11px] text-zinc-500 tabular-nums">

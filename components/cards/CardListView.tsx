@@ -21,6 +21,7 @@ interface CardListViewProps {
   deckId: string | null;
   getDeckLabel?: (card: TrackedCard) => string | undefined;
   getDeckCount?: (card: TrackedCard) => number | undefined;
+  pointFormat?: boolean;
   onAdjustCollected: (tcgId: string, delta: 1 | -1) => void;
   onSetNeeded: (tcgId: string, value: number) => void;
   onRemove: (tcgId: string) => void;
@@ -82,6 +83,7 @@ export function CardListView({
   deckId,
   getDeckLabel,
   getDeckCount,
+  pointFormat,
   onAdjustCollected,
   onSetNeeded,
   onRemove,
@@ -121,7 +123,7 @@ export function CardListView({
     <div className="flex flex-col flex-1 min-h-0">
       {/* Locked top section */}
       <div className="flex-shrink-0">
-        <StatsBar cards={cards} />
+        <StatsBar cards={cards} pointFormat={pointFormat} />
         <FilterTabs
           active={filter}
           onChange={setFilter}
@@ -150,6 +152,7 @@ export function CardListView({
                   card={card}
                   deckLabel={getDeckLabel?.(card)}
                   deckCount={getDeckCount?.(card)}
+                  pointFormat={pointFormat}
                   onImageClick={setPopupCard}
                   onDecrement={() => onAdjustCollected(card.tcgId, -1)}
                   onIncrement={() => onAdjustCollected(card.tcgId, 1)}

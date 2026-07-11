@@ -9,6 +9,8 @@ import { usePokemonSearch } from '@/hooks/usePokemonSearch';
 import { useAppContext } from '@/context/AppContext';
 import { FormatPicker } from '@/components/formats/FormatPicker';
 import { formatFilterLabel } from '@/services/formats';
+import { getCardPoints, POINT_FORMAT_ID } from '@/services/pointList';
+import { PointStars } from '@/components/cards/PointStars';
 
 interface ScannedRaw {
   name: string;
@@ -163,6 +165,7 @@ export function CardScanner({ onSelect, onSelectMultiple, onBack, formatIds, pen
   }
 
   const addableCount = selectedCards.filter((c) => c !== null).length;
+  const showPoints = !!formatIds?.includes(POINT_FORMAT_ID);
 
   /* ── Processing ── */
   if (phase === 'processing') {
@@ -216,6 +219,9 @@ export function CardScanner({ onSelect, onSelectMultiple, onBack, formatIds, pen
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-1.5 min-w-0">
                         <p className="text-sm text-zinc-100 truncate">{selected.name}</p>
+                        {showPoints && (
+                          <PointStars points={getCardPoints(selected.name, selected.number)} />
+                        )}
                         {raw.quantity > 1 && (
                           <span className="text-[11px] text-zinc-500 flex-shrink-0">×{raw.quantity}</span>
                         )}
@@ -498,6 +504,7 @@ function ScanResultsSearch({
               key={card.id}
               card={card}
               isMultiCard={isMultiCard}
+              showPoints={formatIds.includes(POINT_FORMAT_ID)}
               onSelect={onSelect}
               onImageClick={setPopupCard}
             />
@@ -542,14 +549,17 @@ function ScanResultsSearch({
 function ScanSearchResult({
   card,
   isMultiCard,
+  showPoints,
   onSelect,
   onImageClick,
 }: {
   card: TcgCard;
   isMultiCard: boolean;
+  showPoints?: boolean;
   onSelect: (card: TcgCard) => void;
   onImageClick: (card: TcgCard) => void;
 }) {
+  const points = showPoints ? getCardPoints(card.name, card.number) : 0;
   const prices = card.cardmarket?.prices;
   const lowPrice =
     prices?.lowPriceExPlus != null && prices.lowPriceExPlus > 0
@@ -578,7 +588,10 @@ function ScanSearchResult({
         className="w-9 h-[50px] rounded object-cover flex-shrink-0"
       />
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-        <p className="text-sm font-medium text-zinc-100 truncate">{card.name}</p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <p className="text-sm font-medium text-zinc-100 truncate">{card.name}</p>
+          <PointStars points={points} />
+        </div>
         <div className="flex items-center gap-1 text-[11px] text-zinc-500 truncate">
           {card.set.images?.symbol && (
             <TcgAssetImage

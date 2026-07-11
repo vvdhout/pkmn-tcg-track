@@ -93,7 +93,7 @@ export const FORMATS: Format[] = [
   },
   {
     id: 'base-neo-points',
-    name: 'Base–Neo (Point List)',
+    name: 'Base–Neo (Point-Based)',
     category: 'retro',
     fromDate: '1998/12/01', // Base Set
     toDate: '2002/02/28',   // Neo Destiny

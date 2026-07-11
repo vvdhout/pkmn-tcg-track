@@ -11,7 +11,6 @@ interface DeckListItemProps {
 export function DeckListItem({ deck }: DeckListItemProps) {
   const total = deck.cards.reduce((s, c) => s + c.needed, 0);
   const collected = deck.cards.reduce((s, c) => s + c.collected, 0);
-  const complete = deck.cards.filter((c) => c.collected >= c.needed).length;
   const progress = total === 0 ? 0 : Math.round((collected / total) * 100);
   const formatName = deck.format ? getFormat(deck.format)?.name : undefined;
 
@@ -21,7 +20,7 @@ export function DeckListItem({ deck }: DeckListItemProps) {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-zinc-100 truncate">{deck.name}</p>
           <p className="text-[11px] text-zinc-500 mt-0.5">
-            {deck.cards.length} cards · {complete}/{deck.cards.length} complete · {progress}%
+            {collected}/{total} cards · {progress}%
             {formatName && <span className="text-zinc-600"> · {formatName}</span>}
           </p>
           {total > 0 && (

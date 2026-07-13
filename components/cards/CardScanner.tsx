@@ -313,11 +313,12 @@ export function CardScanner({ onSelect, onSelectMultiple, onBack, formatIds, pen
           Photo of cards, binder page, screenshot — Claude will read what&apos;s there
         </span>
       </button>
+      {/* No `capture` attribute — lets iOS offer camera OR photo library.
+          (The BottomNav quick-scan input keeps capture for direct camera.) */}
       <input
         ref={fileRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
